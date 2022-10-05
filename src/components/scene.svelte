@@ -57,6 +57,7 @@
 		justify-content: space-between;
 		min-width: 0;
 		overflow: hidden;
+		transition: 120ms;
 		* {
 			white-space: nowrap;
 			text-overflow: ellipsis;

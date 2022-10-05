@@ -254,6 +254,7 @@
       height: 3em;
       padding: 0.5em 0.75em;
       font-weight: bold;
+      transition: 120ms;
     }
     &::-webkit-scrollbar {
       width: 6px;
