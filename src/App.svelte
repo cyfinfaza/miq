@@ -1,113 +1,65 @@
 <script>
   import Modal from "./components/modal.svelte";
   import Scene from "./components/scene.svelte";
-  import { showingModal, dataSourceConfig, selectedDataSourceId } from "./lib/stores";
+  import { showingModal, dataSourceConfig, selectedDataSourceId, selectedConfigId } from "./lib/stores";
 
   import Papa from "papaparse";
   import { onMount } from "svelte";
+  import DbManager from "./components/dbManager.svelte";
 
-  const ddp = {
-    notesRow: 0,
-    namesRow: 1,
-    micsStartRow: 2,
-    micNumsCol: 0,
-    actorNamesCol: 1,
-    scenesStartCol: 2,
-  };
+  import {ddp} from "./lib/db"
+
+  import { configs, sheets } from './lib/db';
 
   let loading = ["Loading..."];
 
   let sceneSelector;
 
-  $: selectedDataSource = $dataSourceConfig.find((item) => item.id === $selectedDataSourceId);
+  let selectedConfig = null;
+  $: selectedConfig = ($configs || []).find(config => config.id === $selectedConfigId) || {};
   let data = [];
+  $: data = selectedConfig.sheetId ? $sheets.find(sheet => sheet.id === selectedConfig.sheetId).table : [];
 
-  function updateData() {
-    loading = ["Populating scenes...", ...loading]
-    if (selectedDataSource) {
-      Papa.parse(`https://docs.google.com/spreadsheets/u/0/d/${selectedDataSource.sheetId}/export?format=csv`, {
-        download: true,
-        header: false,
-        complete: function (results) {
-          console.log(results);
-          data = results.data;
-          loading = loading.filter(item => item !== "Populating scenes...");
-        },
-      });
-    }
-  }
+  // $: console.log(data);
+  // $: console.log(selectedConfig)
+  // $: console.log($configs)
+  // $: console.log($sheets)
+  // $: console.log($selectedConfigId)
+  $: console.log({
+    data,
+    selectedConfig,
+    configs: $configs,
+    sheets: $sheets,
+    selectedConfigId: $selectedConfigId,
+  })
 
   let scenes = [];
   $: {
-    if (data.length > 0 && data[0]?.length > 0) {
+    if (data && data.length > 0 && data[0]?.length > 0) {
       let newScenes = [];
-      for (let i = selectedDataSource.scenesStartCol ?? ddp.scenesStartCol; i < data[0].length; i++) {
+      for (let i = selectedConfig.scenesStartCol ?? ddp.scenesStartCol; i < data[0].length; i++) {
         let mics = {};
-        for (let j = selectedDataSource.micsStartRow ?? ddp.micsStartRow; j < (selectedDataSource.micsStartRow ?? ddp.micsStartRow) + 16; j++) {
-          mics[data[j][parseInt(selectedDataSource.micNumsCol ?? ddp.micNumsCol)]-1] = {
-            actor: data[j][parseInt(selectedDataSource.actorNamesCol ?? ddp.actorNamesCol)],
+        for (let j = selectedConfig.micsStartRow ?? ddp.micsStartRow; j < (selectedConfig.micsStartRow ?? ddp.micsStartRow) + 16; j++) {
+          mics[data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)]-1] = {
+            actor: data[j][parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol)],
             character: data[j][i],
             active: data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
           };
         }
         newScenes.push({
-          notes: data[selectedDataSource.notesRow ?? ddp.notesRow][i],
-          name: data[selectedDataSource.namesRow ?? ddp.namesRow][i],
+          notes: data[selectedConfig.notesRow ?? ddp.notesRow][i],
+          name: data[selectedConfig.namesRow ?? ddp.namesRow][i],
           mics,
         });
       }
       scenes = newScenes;
+    } else {
+      scenes = [];
     }
   }
 
-  $: selectedDataSource && updateData();
-
   let previewIndex = 0;
   let currentIndex = -1;
-  // let scenes = [
-  //   {
-  //     name: "1.1",
-  //     notes: "This is a note",
-  //     mics: {
-  //       0: {
-  //         actor: "Actor 0",
-  //         character: "Character 0 asdfasdf",
-  //         active: true,
-  //       },
-  //       1: {
-  //         actor: "Actor 1",
-  //         character: "Character 1",
-  //         active: true,
-  //       },
-  //       2: {
-  //         actor: "Actor 2",
-  //         character: "Character 2",
-  //         active: false,
-  //       },
-  //     },
-  //   },
-  //   {
-  //     name: "1.2",
-  //     notes: "some information\nsome more information\nafsdkjflaskjdfl ahsdlfkjahdsl asdjhflakjshdf llakjsd fhlakj sd",
-  //     mics: {
-  //       0: {
-  //         actor: "Actor 0",
-  //         character: "Character 0",
-  //         active: false,
-  //       },
-  //       1: {
-  //         actor: "Actor 1",
-  //         character: "Character 1.2",
-  //         active: true,
-  //       },
-  //       2: {
-  //         actor: "Actor 2",
-  //         character: "Character 2",
-  //         active: true,
-  //       },
-  //     },
-  //   },
-  // ];
 
   function fire(index) {
     currentIndex = index;
@@ -138,7 +90,12 @@
     <div class="horiz">
       <button>OSC/WS</button>
       <button>MIDI</button>
-      <button on:click={(_) => ($showingModal = ["dataSourceConfig"])}>Data Source: <strong>{selectedDataSource?.name || "Not Configured"}</strong></button>
+      <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
+      <select style="font-weight: 900;" bind:value={$selectedConfigId}>
+        {#each ($configs || []) as item}
+          <option value={item.id}>{item.name || "Untitled"}</option>
+        {/each}
+      </select>
     </div>
   </div>
   <div class="middle">
@@ -166,36 +123,7 @@
   </div>
 </main>
 
-<Modal modalName="dataSourceConfig">
-  <h1>Data Source Config</h1>
-  <p>Data is sourced from properly formatted Google Sheets. Ensure sheets are publicly available. Sheet ID can be found in the URL.</p>
-  {#each $dataSourceConfig as source}
-    <div class="horiz" style="flex-wrap: wrap; border-left: 2px solid var(--fg); padding-left: 12px;">
-      <button on:click={(_) => ($selectedDataSourceId = source.id)} class:accent={source.id === $selectedDataSourceId}>{source.id === $selectedDataSourceId ? "Selected" : "Select"}</button>
-      <input type="text" placeholder="Name" bind:value={source.name} />
-      <input type="text" placeholder="Google Sheets ID" bind:value={source.sheetId} />
-      <input type="number" placeholder="Notes R" bind:value={source.notesRow} />
-      <input type="number" placeholder="Names R" bind:value={source.namesRow} />
-      <input type="number" placeholder="Mics SR" bind:value={source.micsStartRow} />
-      <input type="number" placeholder="Mic #s C" bind:value={source.micNumsCol} />
-      <input type="number" placeholder="Actors C" bind:value={source.actorNamesCol} />
-      <input type="number" placeholder="Scenes SC" bind:value={source.scenesStartCol} />
-      <button class="red" on:click={(_) => ($dataSourceConfig = $dataSourceConfig.filter((item) => item.id !== source.id))}>Delete</button>
-    </div>
-  {/each}
-  <button
-    on:click={(_) => {
-      $dataSourceConfig = [
-        ...$dataSourceConfig,
-        {
-          id: parseInt(Math.random() * 90000 + 10000).toString(36),
-          name: "",
-          sheetId: "",
-        },
-      ];
-    }}>New source</button
-  >
-</Modal>
+<DbManager />
 
 <style lang="scss">
   main {
@@ -217,7 +145,7 @@
     align-items: center;
     justify-content: space-between;
     height: 100%;
-    button {
+    button, select {
       font-size: 1.1em;
       font-weight: 300;
       strong {
@@ -242,6 +170,7 @@
     align-items: stretch;
     gap: 24px;
     grid-template-rows: auto 1fr;
+    overflow: hidden;
   }
   .sceneselector {
     display: flex;
@@ -283,5 +212,6 @@
     flex-direction: column;
     justify-content: space-between;
     gap: 12px;
+    overflow: auto;
   }
 </style>

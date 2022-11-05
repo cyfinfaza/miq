@@ -17,15 +17,18 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		max-width: min(720px, 100%);
+		max-width: min(860px, 100%);
+		width: 100%;
 		max-height: 100%;
 		overflow: auto;
 		padding: 12px;
 		box-sizing: border-box;
 		gap: 12px;
+		pointer-events: none;
 		&.showing {
 			opacity: 1;
 			transform: scale(1);
+			pointer-events: auto;
 		}
 	}
 </style>
