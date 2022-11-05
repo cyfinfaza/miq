@@ -1,24 +1,32 @@
 <script>
   import Modal from "./components/modal.svelte";
   import Scene from "./components/scene.svelte";
-  import { showingModal, dataSourceConfig, selectedDataSourceId, selectedConfigId } from "./lib/stores";
+  import {
+    showingModal,
+    dataSourceConfig,
+    selectedDataSourceId,
+    selectedConfigId,
+  } from "./lib/stores";
 
   import Papa from "papaparse";
   import { onMount } from "svelte";
   import DbManager from "./components/dbManager.svelte";
 
-  import {ddp} from "./lib/db"
+  import { ddp } from "./lib/db";
 
-  import { configs, sheets } from './lib/db';
+  import { configs, sheets } from "./lib/db";
 
   let loading = ["Loading..."];
 
   let sceneSelector;
 
   let selectedConfig = null;
-  $: selectedConfig = ($configs || []).find(config => config.id === $selectedConfigId) || {};
+  $: selectedConfig =
+    ($configs || []).find((config) => config.id === $selectedConfigId) || {};
   let data = [];
-  $: data = selectedConfig.sheetId ? $sheets.find(sheet => sheet.id === selectedConfig.sheetId).table : [];
+  $: data = selectedConfig.sheetId
+    ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table
+    : [];
 
   // $: console.log(data);
   // $: console.log(selectedConfig)
@@ -31,19 +39,33 @@
     configs: $configs,
     sheets: $sheets,
     selectedConfigId: $selectedConfigId,
-  })
+  });
 
   let scenes = [];
   $: {
     if (data && data.length > 0 && data[0]?.length > 0) {
       let newScenes = [];
-      for (let i = selectedConfig.scenesStartCol ?? ddp.scenesStartCol; i < data[0].length; i++) {
+      for (
+        let i = selectedConfig.scenesStartCol ?? ddp.scenesStartCol;
+        i < data[0].length;
+        i++
+      ) {
         let mics = {};
-        for (let j = selectedConfig.micsStartRow ?? ddp.micsStartRow; j < (selectedConfig.micsStartRow ?? ddp.micsStartRow) + 16; j++) {
-          mics[data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)]-1] = {
-            actor: data[j][parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol)],
+        for (
+          let j = selectedConfig.micsStartRow ?? ddp.micsStartRow;
+          j < (selectedConfig.micsStartRow ?? ddp.micsStartRow) + 16;
+          j++
+        ) {
+          mics[
+            data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)] - 1
+          ] = {
+            actor:
+              data[j][
+                parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol)
+              ],
             character: data[j][i],
-            active: data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
+            active:
+              data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
           };
         }
         newScenes.push({
@@ -79,10 +101,14 @@
     inline: "center",
   });
 
-  onMount(_=>{
-    loading = loading.filter(item => item !== "Loading...");
-  })
+  onMount((_) => {
+    loading = loading.filter((item) => item !== "Loading...");
+  });
 </script>
+
+<svelte:head>
+  <title>{selectedConfig?.name || "miq"}</title>
+</svelte:head>
 
 <main class:showingModal={$showingModal.length > 0}>
   <div class="top">
@@ -92,7 +118,7 @@
       <button>MIDI</button>
       <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
       <select style="font-weight: 900;" bind:value={$selectedConfigId}>
-        {#each ($configs || []) as item}
+        {#each $configs || [] as item}
           <option value={item.id}>{item.name || "Untitled"}</option>
         {/each}
       </select>
@@ -101,11 +127,15 @@
   <div class="middle">
     <div class="sceneselector" bind:this={sceneSelector}>
       <div class="sceneProgress">
-        <strong>{currentIndex+1}</strong>/{scenes.length}
+        <strong>{currentIndex + 1}</strong>/{scenes.length}
         <!-- ({parseInt((previewIndex+1)/scenes.length*100)}%) -->
       </div>
       {#each scenes as scene, i}
-        <button on:click={() => (previewIndex = i)} class:green={i === previewIndex && i !== currentIndex} class:red={i === currentIndex}>
+        <button
+          on:click={() => (previewIndex = i)}
+          class:green={i === previewIndex && i !== currentIndex}
+          class:red={i === currentIndex}
+        >
           {scene.name}
         </button>
       {/each}
@@ -116,10 +146,22 @@
     </div>
   </div>
   <div class="buttons">
-    <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}>Preview backwards</button>
-    <button disabled={previewIndex > scenes.length - 1} on:click={(_) => previewIndex++}>Preview forwards</button>
-    <button disabled={previewIndex === currentIndex+1} on:click={_=>previewIndex=currentIndex+1}>Preview reset</button>
-    <button disabled={previewIndex > scenes.length - 1} class="red" on:click={(_) => fire(previewIndex)}>Fire next</button>
+    <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}
+      >Preview backwards</button
+    >
+    <button
+      disabled={previewIndex > scenes.length - 1}
+      on:click={(_) => previewIndex++}>Preview forwards</button
+    >
+    <button
+      disabled={previewIndex === currentIndex + 1}
+      on:click={(_) => (previewIndex = currentIndex + 1)}>Preview reset</button
+    >
+    <button
+      disabled={previewIndex > scenes.length - 1}
+      class="red"
+      on:click={(_) => fire(previewIndex)}>Fire next</button
+    >
   </div>
 </main>
 
@@ -145,7 +187,8 @@
     align-items: center;
     justify-content: space-between;
     height: 100%;
-    button, select {
+    button,
+    select {
       font-size: 1.1em;
       font-weight: 300;
       strong {
@@ -197,7 +240,12 @@
     .sceneProgress {
       padding: 0 12px;
       padding-right: 24px;
-      background: linear-gradient(to left, transparent 0%, var(--bg) 12px, var(--bg) 100%);
+      background: linear-gradient(
+        to left,
+        transparent 0%,
+        var(--bg) 12px,
+        var(--bg) 100%
+      );
       height: 100%;
       display: flex;
       align-items: center;

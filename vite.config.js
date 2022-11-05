@@ -23,6 +23,22 @@ export default defineConfig({
             },
           },
         ],
+        skipWaiting: true,
+      },
+      manifest: {
+        name: "miq",
+        short_name: "miq",
+        description: "Preview and fire mic cues from Google Sheets",
+        theme_color: "#000000",
+        icons: [
+          {
+            src: "/favicon.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+        ],
+        display: "standalone",
+        start_url: "/",
       },
     }),
   ],
