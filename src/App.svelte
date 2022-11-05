@@ -7,6 +7,7 @@
     selectedDataSourceId,
     selectedConfigId,
   } from "./lib/stores";
+  import { onFireOsc, oscStatus } from "./lib/osc";
 
   import Papa from "papaparse";
   import { onMount } from "svelte";
@@ -82,9 +83,11 @@
 
   let previewIndex = 0;
   let currentIndex = -1;
+  let currentIndexConfigId = null;
 
   function fire(index) {
     currentIndex = index;
+    currentIndexConfigId = $selectedConfigId;
     if (index === previewIndex) {
       previewIndex = index + 1;
       sceneSelector?.querySelectorAll("button")[index]?.scrollIntoView({
@@ -93,6 +96,7 @@
         inline: "center",
       });
     }
+    onFireOsc(scenes[currentIndex]);
   }
 
   $: sceneSelector?.querySelectorAll("button")[previewIndex]?.scrollIntoView({
@@ -100,6 +104,11 @@
     block: "center",
     inline: "center",
   });
+
+  $: if ($selectedConfigId !== currentIndexConfigId) {
+    currentIndex = -1;
+    currentIndexConfigId = null;
+  }
 
   onMount((_) => {
     loading = loading.filter((item) => item !== "Loading...");
@@ -114,7 +123,17 @@
   <div class="top">
     <h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
     <div class="horiz">
-      <button>OSC/WS</button>
+      <button>
+        OSC/WS:
+        <span
+          style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
+        >
+          <strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
+          {#if $oscStatus.address}
+            ({$oscStatus.address})
+          {/if}
+        </span>
+      </button>
       <button>MIDI</button>
       <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
       <select style="font-weight: 900;" bind:value={$selectedConfigId}>
