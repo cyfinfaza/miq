@@ -57,17 +57,23 @@
           j < (selectedConfig.micsStartRow ?? ddp.micsStartRow) + 16;
           j++
         ) {
-          mics[
-            data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)] - 1
-          ] = {
-            actor:
-              data[j][
-                parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol)
-              ],
-            character: data[j][i],
-            active:
-              data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
-          };
+          if (
+            parseInt(
+              data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)]
+            ) !== NaN
+          ) {
+            mics[
+              data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)] - 1
+            ] = {
+              actor:
+                data[j][
+                  parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol)
+                ],
+              character: data[j][i],
+              active:
+                data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
+            };
+          }
         }
         newScenes.push({
           notes: data[selectedConfig.notesRow ?? ddp.notesRow][i],
