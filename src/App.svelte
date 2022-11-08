@@ -54,9 +54,11 @@
         let mics = {};
         for (
           let j = selectedConfig.micsStartRow ?? ddp.micsStartRow;
-          j < (selectedConfig.micsStartRow ?? ddp.micsStartRow) + 16;
+          j <
+          (selectedConfig.micsStartRow ?? ddp.micsStartRow) + data.length - 1;
           j++
         ) {
+          console.log(i, j, data);
           if (
             parseInt(
               data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)]
