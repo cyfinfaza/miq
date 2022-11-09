@@ -76,7 +76,20 @@ export function onFireOsc(scene) {
       client.send(
         new osc.Message(`/ch/${channel}/config/color`, mic.active ? 6 : 1)
       );
-      client.send(new osc.Message(`/ch/${channel}/config/name`, mic.character));
+      client.send(
+        new osc.Message(
+          `/ch/${channel}/config/name`,
+          mic.character || mic.actor
+        )
+      );
     }
   });
+}
+
+export function openOSC() {
+  client.open();
+}
+
+export function closeOSC() {
+  client.close();
 }

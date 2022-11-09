@@ -7,7 +7,7 @@
     selectedDataSourceId,
     selectedConfigId,
   } from "./lib/stores";
-  import { onFireOsc, oscStatus } from "./lib/osc";
+  import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
   import Papa from "papaparse";
   import { onMount } from "svelte";
@@ -16,6 +16,7 @@
   import { ddp } from "./lib/db";
 
   import { configs, sheets } from "./lib/db";
+  import osc from "osc-js";
 
   let loading = ["Loading..."];
 
@@ -118,6 +119,16 @@
     currentIndexConfigId = null;
   }
 
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+
   onMount((_) => {
     loading = loading.filter((item) => item !== "Loading...");
   });
@@ -131,18 +142,23 @@
   <div class="top">
     <h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
     <div class="horiz">
-      <button>
+      <button on:click={toggleFullscreen}>Fullscreen</button>
+      <button
+        on:click={$oscStatus.connected ? closeOSC() : openOSC()}
+        style="position: relative;"
+      >
         OSC/WS:
         <span
           style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
         >
           <strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
-          {#if $oscStatus.address}
+          <!-- {#if $oscStatus.address}
             ({$oscStatus.address})
-          {/if}
+          {/if} -->
         </span>
+        <span class="minilabel">tap to toggle connection</span>
       </button>
-      <button>MIDI</button>
+      <!-- <button>MIDI</button> -->
       <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
       <select style="font-weight: 900;" bind:value={$selectedConfigId}>
         {#each $configs || [] as item}
