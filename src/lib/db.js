@@ -3,6 +3,7 @@ import { liveQuery } from "dexie";
 export const ddp = {
   notesRow: 0,
   namesRow: 1,
+  flagsRow: 2,
   micsStartRow: 2,
   micNumsCol: 0,
   actorNamesCol: 1,

@@ -7,16 +7,17 @@
   <div class="mics">
     <h2>{scene ? scene.name : "--"}</h2>
     <div class="channels">
-      {#each new Array(16) as _, i}
-        <div
-          class="channel"
-          class:accent={scene?.mics[i]?.active}
-          class:dne={!scene?.mics[i]}
-        >
-          <h3 style="font-weight: 400; text-overflow: clip;">{i + 1}</h3>
+      {#each Object.keys(scene?.mics || {}) as i}
+        <div class="channel" class:accent={scene?.mics[i]?.active} class:dne={!scene?.mics[i]}>
+          <h3 style="font-weight: 400; text-overflow: clip;">{i}</h3>
           <div>
-            <p style="font-size: 0.8em; font-weight: 200;">
-              {scene?.mics[i]?.actor || ""}
+            <p style="font-size: 0.8em; font-weight: 200;" class="actorLabel" class:actorChanging={scene?.mics[i]?.switchingFrom}>
+              {#if scene?.mics[i]?.switchingFrom}
+                {scene?.mics[i]?.switchingFrom || ""}
+                <br /> <strong>&rarr; {scene?.mics[i]?.actor || ""}</strong>
+              {:else}
+                {scene?.mics[i]?.actor || ""}
+              {/if}
             </p>
             <p style="font-size: 0.9em; font-weight: 600;">
               {scene?.mics[i]?.character || ""}
@@ -66,12 +67,29 @@
     min-width: 0;
     overflow: hidden;
     transition: 120ms;
-    * {
+    > h3,
+    p {
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
     }
   }
+
+  .actorLabel {
+    transition: 120ms;
+    border: 4px solid transparent;
+    border-radius: 4px;
+    position: relative;
+    top: 4px;
+    right: 4px;
+    width: 100%;
+    &.actorChanging {
+      background: #fe0;
+      color: #000;
+      border-color: #fe0;
+    }
+  }
+
   .accent {
     border-color: transparent;
   }

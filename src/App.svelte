@@ -1,12 +1,7 @@
 <script>
   import Modal from "./components/modal.svelte";
   import Scene from "./components/scene.svelte";
-  import {
-    showingModal,
-    dataSourceConfig,
-    selectedDataSourceId,
-    selectedConfigId,
-  } from "./lib/stores";
+  import { showingModal, dataSourceConfig, selectedDataSourceId, selectedConfigId } from "./lib/stores";
   import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
   import Papa from "papaparse";
@@ -23,12 +18,9 @@
   let sceneSelector;
 
   let selectedConfig = null;
-  $: selectedConfig =
-    ($configs || []).find((config) => config.id === $selectedConfigId) || {};
+  $: selectedConfig = ($configs || []).find((config) => config.id === $selectedConfigId) || {};
   let data = [];
-  $: data = selectedConfig.sheetId
-    ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table
-    : [];
+  $: data = selectedConfig.sheetId ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table : [];
 
   // $: console.log(data);
   // $: console.log(selectedConfig)
@@ -45,46 +37,77 @@
 
   let scenes = [];
   $: {
+    const config = {
+      notesRow: parseInt(selectedConfig.notesRow ?? ddp.notesRow),
+      namesRow: parseInt(selectedConfig.namesRow ?? ddp.namesRow),
+      flagsRow: parseInt(selectedConfig.flagsRow ?? ddp.flagsRow),
+      micsStartRow: parseInt(selectedConfig.micsStartRow ?? ddp.micsStartRow),
+      micNumsCol: parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol),
+      actorNamesCol: parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol),
+      scenesStartCol: parseInt(selectedConfig.scenesStartCol ?? ddp.scenesStartCol),
+    };
     if (data && data.length > 0 && data[0]?.length > 0) {
       let newScenes = [];
-      for (
-        let i = selectedConfig.scenesStartCol ?? ddp.scenesStartCol;
-        i < data[0].length;
-        i++
-      ) {
-        let mics = {};
-        for (
-          let j = selectedConfig.micsStartRow ?? ddp.micsStartRow;
-          j <
-          (selectedConfig.micsStartRow ?? ddp.micsStartRow) + data.length - 1;
-          j++
-        ) {
-          console.log(i, j, data);
-          if (
-            parseInt(
-              data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)]
-            ) !== NaN
-          ) {
-            mics[
-              data[j][parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol)] - 1
-            ] = {
-              actor:
-                data[j][
-                  parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol)
-                ],
-              character: data[j][i],
-              active:
-                data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
+      let actorMicPairs = {};
+      function generateActorMicPairs(col) {
+        for (let j = config.micsStartRow; j < data.length; j++) {
+          const micNum = parseInt(data[j][col]);
+          if (micNum !== NaN && micNum > 0) {
+            actorMicPairs[micNum] = {
+              row: j,
+              actor: data[j][config.actorNamesCol],
             };
           }
         }
+      }
+      generateActorMicPairs(config.micNumsCol);
+      for (let i = config.scenesStartCol; i < data[0].length; i++) {
+        if (data[config.flagsRow][i].includes("MIC_CHANGE")) {
+          generateActorMicPairs(i);
+          continue;
+        }
+        let mics = {};
+        Object.keys(actorMicPairs).forEach((micNum) => {
+          const pair = actorMicPairs[micNum];
+          const j = pair.row;
+          mics[micNum] = {
+            actor: pair.actor,
+            character: data[j][i],
+            active: data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
+          };
+        });
         newScenes.push({
-          notes: data[selectedConfig.notesRow ?? ddp.notesRow][i],
-          name: data[selectedConfig.namesRow ?? ddp.namesRow][i],
+          notes: data[config.notesRow][i],
+          name: data[config.namesRow][i],
           mics,
         });
       }
+      // backward pass
+      let passMem = {};
+      newScenes.reverse();
+      newScenes.forEach((scene) => {
+        Object.keys(scene.mics).forEach((micNum) => {
+          if (passMem[micNum]?.actor && !scene.mics[micNum].active) {
+            scene.mics[micNum].actor = passMem[micNum].actor;
+          } else {
+            passMem[micNum] = scene.mics[micNum];
+          }
+        });
+      });
+      // forward pass
+      passMem = {};
+      newScenes.reverse();
+      newScenes.forEach((scene) => {
+        Object.keys(scene.mics).forEach((micNum) => {
+          if (passMem[micNum]?.switchingFrom && !scene.mics[micNum].active && passMem[micNum]?.switchingFrom !== scene.mics[micNum].actor) {
+            scene.mics[micNum].switchingFrom = passMem[micNum].switchingFrom;
+          } else {
+            passMem[micNum] = { switchingFrom: scene.mics[micNum].actor };
+          }
+        });
+      });
       scenes = newScenes;
+      window.scenes = scenes;
     } else {
       scenes = [];
     }
@@ -143,14 +166,9 @@
     <h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
     <div class="horiz">
       <button on:click={toggleFullscreen}>Fullscreen</button>
-      <button
-        on:click={$oscStatus.connected ? closeOSC() : openOSC()}
-        style="position: relative;"
-      >
+      <button on:click={$oscStatus.connected ? closeOSC() : openOSC()} style="position: relative;">
         OSC/WS:
-        <span
-          style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
-        >
+        <span style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}>
           <strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
           <!-- {#if $oscStatus.address}
             ({$oscStatus.address})
@@ -174,11 +192,7 @@
         <!-- ({parseInt((previewIndex+1)/scenes.length*100)}%) -->
       </div>
       {#each scenes as scene, i}
-        <button
-          on:click={() => (previewIndex = i)}
-          class:green={i === previewIndex && i !== currentIndex}
-          class:red={i === currentIndex}
-        >
+        <button on:click={() => (previewIndex = i)} class:green={i === previewIndex && i !== currentIndex} class:red={i === currentIndex}>
           {scene.name}
         </button>
       {/each}
@@ -189,22 +203,10 @@
     </div>
   </div>
   <div class="buttons">
-    <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}
-      >Preview backwards</button
-    >
-    <button
-      disabled={previewIndex > scenes.length - 1}
-      on:click={(_) => previewIndex++}>Preview forwards</button
-    >
-    <button
-      disabled={previewIndex === currentIndex + 1}
-      on:click={(_) => (previewIndex = currentIndex + 1)}>Preview reset</button
-    >
-    <button
-      disabled={previewIndex > scenes.length - 1}
-      class="red"
-      on:click={(_) => fire(previewIndex)}>Fire next</button
-    >
+    <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}>Preview backwards</button>
+    <button disabled={previewIndex > scenes.length - 1} on:click={(_) => previewIndex++}>Preview forwards</button>
+    <button disabled={previewIndex === currentIndex + 1} on:click={(_) => (previewIndex = currentIndex + 1)}>Preview reset</button>
+    <button disabled={previewIndex > scenes.length - 1} class="red" on:click={(_) => fire(previewIndex)}>Fire next</button>
   </div>
 </main>
 
@@ -283,12 +285,7 @@
     .sceneProgress {
       padding: 0 12px;
       padding-right: 24px;
-      background: linear-gradient(
-        to left,
-        transparent 0%,
-        var(--bg) 12px,
-        var(--bg) 100%
-      );
+      background: linear-gradient(to left, transparent 0%, var(--bg) 12px, var(--bg) 100%);
       height: 100%;
       display: flex;
       align-items: center;
