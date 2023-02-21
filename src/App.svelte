@@ -1,7 +1,14 @@
 <script>
   import Modal from "./components/modal.svelte";
   import Scene from "./components/scene.svelte";
-  import { showingModal, dataSourceConfig, selectedDataSourceId, selectedConfigId, mqttStatus, mqttConfig } from "./lib/stores";
+  import {
+    showingModal,
+    dataSourceConfig,
+    selectedDataSourceId,
+    selectedConfigId,
+    mqttStatus,
+    mqttConfig,
+  } from "./lib/stores";
   import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
   import Papa from "papaparse";
@@ -20,9 +27,14 @@
   let sceneSelector;
 
   let selectedConfig = null;
-  $: selectedConfig = ($configs || []).find((config) => config.id === $selectedConfigId) || {};
+  $: selectedConfig =
+    ($configs || []).find((config) => config.id === $selectedConfigId) || {};
   let data = [];
-  $: data = selectedConfig?.table || (selectedConfig.sheetId ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table : []);
+  $: data =
+    selectedConfig?.table ||
+    (selectedConfig.sheetId
+      ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table
+      : []);
 
   // $: console.log(data);
   // $: console.log(selectedConfig)
@@ -45,8 +57,12 @@
       flagsRow: parseInt(selectedConfig.flagsRow ?? ddp.flagsRow),
       micsStartRow: parseInt(selectedConfig.micsStartRow ?? ddp.micsStartRow),
       micNumsCol: parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol),
-      actorNamesCol: parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol),
-      scenesStartCol: parseInt(selectedConfig.scenesStartCol ?? ddp.scenesStartCol),
+      actorNamesCol: parseInt(
+        selectedConfig.actorNamesCol ?? ddp.actorNamesCol
+      ),
+      scenesStartCol: parseInt(
+        selectedConfig.scenesStartCol ?? ddp.scenesStartCol
+      ),
     };
     if (data && data.length > 0 && data[0]?.length > 0) {
       let newScenes = [];
@@ -75,7 +91,8 @@
           mics[micNum] = {
             actor: pair.actor,
             character: data[j][i],
-            active: data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
+            active:
+              data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
           };
         });
         newScenes.push({
@@ -101,7 +118,11 @@
       newScenes.reverse();
       newScenes.forEach((scene) => {
         Object.keys(scene.mics).forEach((micNum) => {
-          if (passMem[micNum]?.switchingFrom && !scene.mics[micNum].active && passMem[micNum]?.switchingFrom !== scene.mics[micNum].actor) {
+          if (
+            passMem[micNum]?.switchingFrom &&
+            !scene.mics[micNum].active &&
+            passMem[micNum]?.switchingFrom !== scene.mics[micNum].actor
+          ) {
             scene.mics[micNum].switchingFrom = passMem[micNum].switchingFrom;
           } else {
             passMem[micNum] = { switchingFrom: scene.mics[micNum].actor };
@@ -156,19 +177,43 @@
 
   $: {
     // console.log(selectedConfig, $mqttConfig.mode, $mqttStatus.connected)
-    if (selectedConfig && $mqttStatus.connected && $mqttConfig.mode == "tx" && $mqttConfig.topic) {
+    if (
+      selectedConfig &&
+      $mqttStatus.connected &&
+      $mqttConfig.mode == "tx" &&
+      $mqttConfig.topic
+    ) {
       let config = $configs?.find((item) => item.id === selectedConfig.id);
-      const sheetId = $sheets?.find((item) => item.id === config.sheetId)?.sheetId;
-      config = { ...config, sheetId };
-      mqttClient.publish("miq/" + $mqttConfig.topic + "/config", JSON.stringify({ type: "config", data: config }), 0, true);
+      const sheetId = $sheets?.find(
+        (item) => item.id === config.sheetId
+      )?.sheetId;
+      if (sheetId) config = { ...config, sheetId };
+      if (config.table) config = { ...config, table: undefined };
+      console.log("sending config", config);
+      mqttClient.publish(
+        "miq/" + $mqttConfig.topic + "/config",
+        JSON.stringify({ type: "config", data: config }),
+        0,
+        true
+      );
       //set will message to clear
     }
   }
 
   $: {
-    if (selectedConfig && $mqttStatus.connected && $mqttConfig.mode == "tx" && $mqttConfig.topic) {
+    if (
+      selectedConfig &&
+      $mqttStatus.connected &&
+      $mqttConfig.mode == "tx" &&
+      $mqttConfig.topic
+    ) {
       // send current and preview index
-      mqttClient.publish("miq/" + $mqttConfig.topic, JSON.stringify({ type: "index", data: { currentIndex, previewIndex } }), 0, false);
+      mqttClient.publish(
+        "miq/" + $mqttConfig.topic,
+        JSON.stringify({ type: "index", data: { currentIndex, previewIndex } }),
+        0,
+        false
+      );
     }
   }
 
@@ -198,7 +243,9 @@
     loading = loading.filter((item) => item !== "Loading...");
     // check url for linked config
     try {
-      const linkedConfig = JSON.parse(atob(new URL(window.location).searchParams.get("config")));
+      const linkedConfig = JSON.parse(
+        atob(new URL(window.location).searchParams.get("config"))
+      );
       loadExternalConfig("linked", "Linked", linkedConfig);
     } catch (error) {}
   });
@@ -208,23 +255,37 @@
   <title>{selectedConfig?.name || "miq"}</title>
 </svelte:head>
 
-<main class:showingModal={$showingModal.length > 0} class:hideButtons={rxActive && $mqttConfig.rx_preview}>
+<main
+  class:showingModal={$showingModal.length > 0}
+  class:hideButtons={rxActive && $mqttConfig.rx_preview}
+>
   <div class="top">
     <h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
     <div class="horiz">
       <button on:click={toggleFullscreen}>Fullscreen</button>
       <button on:click={(_) => ($showingModal = ["mqttConfig"])}
         >MQTT:
-        <span style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}>
-          <strong>{$mqttStatus.connected ? $mqttConfig.mode + "/" + $mqttConfig.topic : "Disconnected"}</strong>
+        <span
+          style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}
+        >
+          <strong
+            >{$mqttStatus.connected
+              ? $mqttConfig.mode + "/" + $mqttConfig.topic
+              : "Disconnected"}</strong
+          >
           <!-- {#if $oscStatus.address}
             ({$oscStatus.address})
           {/if} -->
         </span></button
       >
-      <button on:click={$oscStatus.connected ? closeOSC() : openOSC()} style="position: relative;">
+      <button
+        on:click={$oscStatus.connected ? closeOSC() : openOSC()}
+        style="position: relative;"
+      >
         OSC/WS:
-        <span style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}>
+        <span
+          style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
+        >
           <strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
           <!-- {#if $oscStatus.address}
             ({$oscStatus.address})
@@ -234,9 +295,15 @@
       </button>
       <!-- <button>MIDI</button> -->
       {#if !rxActive}
-        <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
+        <button on:click={(_) => ($showingModal = ["dbConfig"])}
+          >Database</button
+        >
       {/if}
-      <select style="font-weight: 900;" bind:value={$selectedConfigId} disabled={rxActive}>
+      <select
+        style="font-weight: 900;"
+        bind:value={$selectedConfigId}
+        disabled={rxActive}
+      >
         {#each $configs || [] as item}
           <option value={item.id}>{item.name || "Untitled"}</option>
         {/each}
@@ -250,7 +317,11 @@
         <!-- ({parseInt((previewIndex+1)/scenes.length*100)}%) -->
       </div>
       {#each scenes as scene, i}
-        <button on:click={() => (previewIndex = i)} class:green={i === previewIndex && i !== currentIndex} class:red={i === currentIndex}>
+        <button
+          on:click={() => (previewIndex = i)}
+          class:green={i === previewIndex && i !== currentIndex}
+          class:red={i === currentIndex}
+        >
           {scene.name}
         </button>
       {/each}
@@ -262,12 +333,25 @@
   </div>
   <div class="buttons">
     {#if !(rxActive && $mqttConfig.rx_preview)}
-      <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}>Preview backwards</button>
-      <button disabled={previewIndex > scenes.length - 1} on:click={(_) => previewIndex++}>Preview forwards</button>
-      <button disabled={previewIndex === currentIndex + 1} on:click={(_) => (previewIndex = currentIndex + 1)}>Preview reset</button>
+      <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}
+        >Preview backwards</button
+      >
+      <button
+        disabled={previewIndex > scenes.length - 1}
+        on:click={(_) => previewIndex++}>Preview forwards</button
+      >
+      <button
+        disabled={previewIndex === currentIndex + 1}
+        on:click={(_) => (previewIndex = currentIndex + 1)}
+        >Preview reset</button
+      >
     {/if}
     {#if !rxActive}
-      <button disabled={previewIndex > scenes.length - 1} class="red" on:click={(_) => fire(previewIndex)}>Fire next</button>
+      <button
+        disabled={previewIndex > scenes.length - 1}
+        class="red"
+        on:click={(_) => fire(previewIndex)}>Fire next</button
+      >
     {/if}
   </div>
 </main>
@@ -354,7 +438,12 @@
     .sceneProgress {
       padding: 0 12px;
       padding-right: 24px;
-      background: linear-gradient(to left, transparent 0%, var(--bg) 12px, var(--bg) 100%);
+      background: linear-gradient(
+        to left,
+        transparent 0%,
+        var(--bg) 12px,
+        var(--bg) 100%
+      );
       height: 100%;
       display: flex;
       align-items: center;
