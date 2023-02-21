@@ -49,17 +49,28 @@ window.client = client;
 
 export function onFireOsc(scene) {
   console.log("onFireOsc", scene);
-  new Array(32)
-    .map((_, i) => String(i).padStart("0"))
-    .forEach((channel) => {
-      let mic = scene.mics[parseInt(channel) - 1];
+
+  if (scene?.mics) {
+    Object.keys(scene.mics).forEach((channel) => {
+      let mic = scene.mics[channel];
+      channel = String(channel).padStart(2, "0");
       if (mic) {
         console.log("sent osc message");
-        client.send(new osc.Message(`/ch/${channel}/mix/on`, mic.active ? 780 : 0));
-        client.send(new osc.Message(`/ch/${channel}/config/color`, mic.active ? 6 : 1));
-        client.send(new osc.Message(`/ch/${channel}/config/name`, mic.character || mic.actor));
+        client.send(
+          new osc.Message(`/ch/${channel}/mix/on`, mic.active ? 780 : 0)
+        );
+        client.send(
+          new osc.Message(`/ch/${channel}/config/color`, mic.active ? 6 : 1)
+        );
+        client.send(
+          new osc.Message(
+            `/ch/${channel}/config/name`,
+            mic.character || mic.actor
+          )
+        );
       }
     });
+  }
 }
 
 export function openOSC() {
