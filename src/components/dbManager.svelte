@@ -1,6 +1,6 @@
 <script>
   import Modal from "./modal.svelte";
-  import { db, storedConfigs, sheets } from "../lib/db";
+  import { db, storedConfigs, configs, sheets } from "../lib/db";
   import Papa from "papaparse";
   import { onMount } from "svelte";
   import { ddp } from "../lib/db";
@@ -20,17 +20,20 @@
     }
   }
 
-  function downloadCurrent() {
+  async function downloadCurrent() {
     if (editing?.data?.sheetId && editing?.data?.sheetId !== "") {
-      Papa.parse(`https://docs.google.com/spreadsheets/u/0/d/${editing.data.sheetId}/export?format=csv`, {
-        download: true,
-        header: false,
-        complete: async function (results) {
-          console.log(results);
-          let data = results.data;
-          editing = { ...editing, data: { ...editing.data, table: data, lastFetched: new Date() } };
-          console.log(editing);
-        },
+      await new Promise((resolve) => {
+        Papa.parse(`https://docs.google.com/spreadsheets/u/0/d/${editing.data.sheetId}/export?format=csv`, {
+          download: true,
+          header: false,
+          complete: async function (results) {
+            console.log(results);
+            let data = results.data;
+            editing = { ...editing, data: { ...editing.data, table: data, lastFetched: new Date() } };
+            console.log(editing);
+            resolve();
+          },
+        });
       });
     }
   }
@@ -64,12 +67,46 @@
   let exportedLink = "";
   $: if (editing?.data && editing.mode === "configs") {
     // export config as link with base64 encoded json containing google sheet Id
-    let config = $storedConfigs.find((item) => item.id === editing.data.id);
-    const sheetId = $sheets.find((item) => item.id === config.sheetId)?.sheetId;
-    config = { ...config, sheetId };
-    const link = new URL(window.location.href);
-    link.searchParams.set("config", btoa(JSON.stringify(config)));
-    exportedLink = link.href;
+    try {
+      let config = $storedConfigs.find((item) => item.id === editing.data.id);
+      const sheetId = $sheets.find((item) => item.id === config.sheetId)?.sheetId;
+      config = { ...config, sheetId };
+      const link = new URL(window.location.href);
+      link.searchParams.set("config", btoa(JSON.stringify(config)));
+      exportedLink = link.href;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function importLinkedConfig() {
+    const linkedConfig = $configs.find((item) => item.id === "linked");
+    if (!linkedConfig) {
+      return;
+    }
+    const sheetId = linkedConfig?.sheetId;
+    delete linkedConfig.sheetId;
+    delete linkedConfig.id;
+    if (linkedConfig.table) {
+      delete linkedConfig.table;
+    }
+    // add sheet to sheets
+    const sheet = { sheetId, name: linkedConfig.name };
+    const newSheetId = await db.sheets.add(sheet);
+    // add config to configs
+    await db.configs.add({ ...linkedConfig, sheetId: newSheetId });
+    await new Promise((resolve) => {
+      Papa.parse(`https://docs.google.com/spreadsheets/u/0/d/${sheet.sheetId}/export?format=csv`, {
+        download: true,
+        header: false,
+        complete: async function (results) {
+          console.log(results);
+          let data = results.data;
+          db.sheets.update({ id: newSheetId }, { table: data, lastFetched: new Date() });
+          resolve();
+        },
+      });
+    });
   }
 </script>
 
@@ -81,6 +118,9 @@
       <option value="configs">Configurations</option>
     </select>
     <button on:click={addNew}>Add New</button>
+    {#if $configs.find((item) => item.id === "linked")}
+      <button on:click={importLinkedConfig}>Import Linked Config</button>
+    {/if}
   </p>
   <div class="horiz" style="width: 100%; height: 500px">
     <div class="verti itemList">
