@@ -1,17 +1,19 @@
 <script>
   import Modal from "./components/modal.svelte";
   import Scene from "./components/scene.svelte";
-  import { showingModal, dataSourceConfig, selectedDataSourceId, selectedConfigId } from "./lib/stores";
+  import { showingModal, dataSourceConfig, selectedDataSourceId, selectedConfigId, mqttStatus, mqttConfig } from "./lib/stores";
   import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
   import Papa from "papaparse";
   import { onMount } from "svelte";
   import DbManager from "./components/dbManager.svelte";
 
-  import { ddp } from "./lib/db";
+  import { ddp, loadExternalConfig } from "./lib/db";
 
   import { configs, sheets } from "./lib/db";
   import osc from "osc-js";
+  import MqttConfig from "./components/mqttConfig.svelte";
+  import { incomingMessage, mqttClient } from "./lib/mqtt";
 
   let loading = ["Loading..."];
 
@@ -20,7 +22,7 @@
   let selectedConfig = null;
   $: selectedConfig = ($configs || []).find((config) => config.id === $selectedConfigId) || {};
   let data = [];
-  $: data = selectedConfig.sheetId ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table : [];
+  $: data = selectedConfig?.table || (selectedConfig.sheetId ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table : []);
 
   // $: console.log(data);
   // $: console.log(selectedConfig)
@@ -152,8 +154,49 @@
     }
   }
 
+  $: {
+    // console.log(selectedConfig, $mqttConfig.mode, $mqttStatus.connected)
+    if (selectedConfig && $mqttStatus.connected && $mqttConfig.mode == "tx" && $mqttConfig.topic) {
+      let config = $configs?.find((item) => item.id === selectedConfig.id);
+      const sheetId = $sheets?.find((item) => item.id === config.sheetId)?.sheetId;
+      config = { ...config, sheetId };
+      mqttClient.publish("miq/" + $mqttConfig.topic + "/config", JSON.stringify({ type: "config", data: config }), 0, true);
+      //set will message to clear
+    }
+  }
+
+  $: {
+    if (selectedConfig && $mqttStatus.connected && $mqttConfig.mode == "tx" && $mqttConfig.topic) {
+      // send current and preview index
+      mqttClient.publish("miq/" + $mqttConfig.topic, JSON.stringify({ type: "index", data: { currentIndex, previewIndex } }), 0, false);
+    }
+  }
+
+  let rxActive = false;
+  $: rxActive = $mqttStatus.connected && $mqttConfig.mode == "rx";
+
+  $: {
+    if ($incomingMessage && $mqttStatus.connected && $mqttConfig.mode == "rx") {
+      const data = JSON.parse($incomingMessage.payloadString);
+      if (data.type === "config") {
+        loadExternalConfig("mqtt", "MQTT", data.data);
+        // $selectedConfigId = "mqtt";
+      } else if (data.type === "index") {
+        if ($mqttConfig.rx_preview) previewIndex = data.data.previewIndex;
+        if ($mqttConfig.rx_live && data.data.currentIndex !== currentIndex) {
+          fire(data.data.currentIndex);
+        }
+      }
+    }
+  }
+
   onMount((_) => {
     loading = loading.filter((item) => item !== "Loading...");
+    // check url for linked config
+    try {
+      const linkedConfig = JSON.parse(atob(new URL(window.location).searchParams.get("config")));
+      loadExternalConfig("linked", "Linked", linkedConfig);
+    } catch (error) {}
   });
 </script>
 
@@ -161,11 +204,20 @@
   <title>{selectedConfig?.name || "miq"}</title>
 </svelte:head>
 
-<main class:showingModal={$showingModal.length > 0}>
+<main class:showingModal={$showingModal.length > 0} class:hideButtons={rxActive && $mqttConfig.rx_preview}>
   <div class="top">
     <h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
     <div class="horiz">
       <button on:click={toggleFullscreen}>Fullscreen</button>
+      <button on:click={(_) => ($showingModal = ["mqttConfig"])}
+        >MQTT:
+        <span style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}>
+          <strong>{$mqttStatus.connected ? $mqttConfig.mode + "/" + $mqttConfig.topic : "Disconnected"}</strong>
+          <!-- {#if $oscStatus.address}
+            ({$oscStatus.address})
+          {/if} -->
+        </span></button
+      >
       <button on:click={$oscStatus.connected ? closeOSC() : openOSC()} style="position: relative;">
         OSC/WS:
         <span style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}>
@@ -177,8 +229,10 @@
         <span class="minilabel">tap to toggle connection</span>
       </button>
       <!-- <button>MIDI</button> -->
-      <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
-      <select style="font-weight: 900;" bind:value={$selectedConfigId}>
+      {#if !rxActive}
+        <button on:click={(_) => ($showingModal = ["dbConfig"])}>Database</button>
+      {/if}
+      <select style="font-weight: 900;" bind:value={$selectedConfigId} disabled={rxActive}>
         {#each $configs || [] as item}
           <option value={item.id}>{item.name || "Untitled"}</option>
         {/each}
@@ -203,19 +257,24 @@
     </div>
   </div>
   <div class="buttons">
-    <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}>Preview backwards</button>
-    <button disabled={previewIndex > scenes.length - 1} on:click={(_) => previewIndex++}>Preview forwards</button>
-    <button disabled={previewIndex === currentIndex + 1} on:click={(_) => (previewIndex = currentIndex + 1)}>Preview reset</button>
-    <button disabled={previewIndex > scenes.length - 1} class="red" on:click={(_) => fire(previewIndex)}>Fire next</button>
+    {#if !(rxActive && $mqttConfig.rx_preview)}
+      <button disabled={previewIndex < 1} on:click={(_) => previewIndex--}>Preview backwards</button>
+      <button disabled={previewIndex > scenes.length - 1} on:click={(_) => previewIndex++}>Preview forwards</button>
+      <button disabled={previewIndex === currentIndex + 1} on:click={(_) => (previewIndex = currentIndex + 1)}>Preview reset</button>
+    {/if}
+    {#if !rxActive}
+      <button disabled={previewIndex > scenes.length - 1} class="red" on:click={(_) => fire(previewIndex)}>Fire next</button>
+    {/if}
   </div>
 </main>
 
 <DbManager />
+<MqttConfig />
 
 <style lang="scss">
   main {
     display: grid;
-    grid-template-rows: 3em 1fr 4em;
+    grid-template-rows: 3em 1fr auto;
     gap: 12px;
     height: 100%;
     width: 100%;
@@ -225,6 +284,9 @@
     &.showingModal {
       transform: scale(0.8);
       opacity: 0;
+    }
+    &.hideButtons {
+      grid-template-rows: 3em 1fr;
     }
   }
   .top {
@@ -245,12 +307,15 @@
     display: flex;
     align-items: stretch;
     gap: 12px;
-    height: 100%;
+    height: 4em;
     width: 100%;
     > * {
       flex: 1;
       font-size: 1.2em;
       font-weight: bold;
+    }
+    .hideButtons & {
+      display: none;
     }
   }
   .middle {

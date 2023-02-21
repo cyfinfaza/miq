@@ -16,3 +16,8 @@ selectedDataSourceId.subscribe((value) => localStorage.setItem("selectedDataSour
 
 export const selectedConfigId = writable(JSON.parse(localStorage.getItem("selectedConfig")) || null);
 selectedConfigId.subscribe((value) => localStorage.setItem("selectedConfig", JSON.stringify(value)));
+
+export const mqttConfig = writable(JSON.parse(localStorage.getItem("mqttConfig")) || { mode: "tx", rx_preview: true, rx_live: false });
+mqttConfig.subscribe((value) => localStorage.setItem("mqttConfig", JSON.stringify(value)));
+
+export const mqttStatus = writable({ connected: false, address: null });

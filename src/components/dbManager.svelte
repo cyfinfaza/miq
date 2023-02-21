@@ -1,6 +1,6 @@
 <script>
   import Modal from "./modal.svelte";
-  import { db, configs, sheets } from "../lib/db";
+  import { db, storedConfigs, sheets } from "../lib/db";
   import Papa from "papaparse";
   import { onMount } from "svelte";
   import { ddp } from "../lib/db";
@@ -38,7 +38,7 @@
   async function deleteCurrent() {
     if (editing?.data?.id) {
       await db[editing.mode].delete(editing.data.id);
-      editing = { mode, data: { configs: $configs, sheets: $sheets }[mode][1] } || {};
+      editing = { mode, data: { configs: $storedConfigs, sheets: $sheets }[mode][1] } || {};
     }
   }
 
@@ -57,7 +57,20 @@
     });
   });
 
+  $: console.log(editing);
+
   $: if (editing.mode != mode) editing = {};
+
+  let exportedLink = "";
+  $: if (editing?.data && editing.mode === "configs") {
+    // export config as link with base64 encoded json containing google sheet Id
+    let config = $storedConfigs.find((item) => item.id === editing.data.id);
+    const sheetId = $sheets.find((item) => item.id === config.sheetId)?.sheetId;
+    config = { ...config, sheetId };
+    const link = new URL(window.location.href);
+    link.searchParams.set("config", btoa(JSON.stringify(config)));
+    exportedLink = link.href;
+  }
 </script>
 
 <Modal modalName="dbConfig">
@@ -71,7 +84,7 @@
   </p>
   <div class="horiz" style="width: 100%; height: 500px">
     <div class="verti itemList">
-      {#each { configs: $configs, sheets: $sheets }[mode] || [] as item, i}
+      {#each { configs: $storedConfigs, sheets: $sheets }[mode] || [] as item, i}
         <button class="item" class:untitled={item.name === ""} class:selected={editing?.data?.id === item.id} on:click={() => (editing = { mode, data: item })}>
           {item.name || "Untitled"}
         </button>
@@ -120,6 +133,10 @@
           <p>Mic Numbers Column: <input type="number" bind:value={editing.data.micNumsCol} /></p>
           <p>Actor Names Column: <input type="number" bind:value={editing.data.actorNamesCol} /></p>
           <p>Scenes Start Column: <input type="number" bind:value={editing.data.scenesStartCol} /></p>
+          <details>
+            <summary>Export as link</summary>
+            <a href={exportedLink} style="word-wrap: break-word;">{exportedLink}</a>
+          </details>
         {/if}
       {/if}
     </div>

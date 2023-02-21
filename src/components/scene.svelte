@@ -76,7 +76,6 @@
   }
 
   .actorLabel {
-    transition: 120ms;
     border: 4px solid transparent;
     border-radius: 4px;
     position: relative;
@@ -84,9 +83,10 @@
     right: 4px;
     width: 100%;
     &.actorChanging {
+      transition: 360ms;
+      transition-delay: 120ms;
       background: #fe0;
       color: #000;
-      border-color: #fe0;
     }
   }
 
