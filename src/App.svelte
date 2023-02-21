@@ -177,15 +177,19 @@
 
   $: {
     if ($incomingMessage && $mqttStatus.connected && $mqttConfig.mode == "rx") {
-      const data = JSON.parse($incomingMessage.payloadString);
-      if (data.type === "config") {
-        loadExternalConfig("mqtt", "MQTT", data.data);
-        // $selectedConfigId = "mqtt";
-      } else if (data.type === "index") {
-        if ($mqttConfig.rx_preview) previewIndex = data.data.previewIndex;
-        if ($mqttConfig.rx_live && data.data.currentIndex !== currentIndex) {
-          fire(data.data.currentIndex);
+      try {
+        const data = JSON.parse($incomingMessage.payloadString);
+        if (data.type === "config") {
+          loadExternalConfig("mqtt", "MQTT", data.data);
+          // $selectedConfigId = "mqtt";
+        } else if (data.type === "index") {
+          if ($mqttConfig.rx_preview) previewIndex = data.data.previewIndex;
+          if ($mqttConfig.rx_live && data.data.currentIndex !== currentIndex) {
+            fire(data.data.currentIndex);
+          }
         }
+      } catch (error) {
+        console.log(error);
       }
     }
   }
