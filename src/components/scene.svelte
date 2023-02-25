@@ -8,10 +8,18 @@
     <h2>{scene ? scene.name : "--"}</h2>
     <div class="channels">
       {#each Object.keys(scene?.mics || {}) as i}
-        <div class="channel" class:accent={scene?.mics[i]?.active} class:dne={!scene?.mics[i]}>
+        <div
+          class="channel"
+          class:accent={scene?.mics[i]?.active}
+          class:dne={!scene?.mics[i]}
+        >
           <h3 style="font-weight: 400; text-overflow: clip;">{i}</h3>
           <div>
-            <p style="font-size: 0.8em; font-weight: 200;" class="actorLabel" class:actorChanging={scene?.mics[i]?.switchingFrom}>
+            <p
+              style="font-size: 0.8em; font-weight: 200;"
+              class="actorLabel"
+              class:actorChanging={scene?.mics[i]?.switchingFrom}
+            >
               {#if scene?.mics[i]?.switchingFrom}
                 {scene?.mics[i]?.switchingFrom || ""}
                 <br /> <strong>&rarr; {scene?.mics[i]?.actor || ""}</strong>
@@ -29,7 +37,7 @@
   </div>
   <div style="min-width: 0;">
     <h3 style="margin-block: 0.2em;">Notes</h3>
-    <p style="overflow: auto">{scene?.notes || ""}</p>
+    <p style="overflow: auto; white-space: pre-line;">{scene?.notes || ""}</p>
   </div>
 </div>
 
