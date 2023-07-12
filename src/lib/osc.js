@@ -65,7 +65,7 @@ export function onFireOsc(scene) {
         client.send(
           new osc.Message(
             `/ch/${channel}/config/name`,
-            mic.character || mic.actor
+            mic.character.startsWith('#') ? mic.actor : (mic.character || mic.actor)
           )
         );
       }

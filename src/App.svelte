@@ -12,7 +12,7 @@
   import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
   import Papa from "papaparse";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import DbManager from "./components/dbManager.svelte";
 
   import { ddp, loadExternalConfig } from "./lib/db";
@@ -24,6 +24,7 @@
 
   let loading = ["Loading..."];
 
+  /** @type {HTMLDivElement} */
   let sceneSelector;
 
   let selectedConfig = null;
@@ -50,6 +51,10 @@
   });
 
   let scenes = [];
+  let historyState = history.state;
+  $: if (scenes.length && scenes[previewIndex]?.name) {
+    history.replaceState(scenes[previewIndex].name, "");
+  }
   $: {
     const config = {
       notesRow: parseInt(selectedConfig.notesRow ?? ddp.notesRow),
@@ -131,6 +136,15 @@
       });
       scenes = newScenes;
       window.scenes = scenes;
+
+      // try to restore from history state, first time only
+      if (historyState !== null) {
+        tick().then(() => {
+          const index = scenes.findIndex((scene) => scene.name === historyState);
+          if (index !== -1) previewIndex = index;
+          historyState = null;
+        })
+      }
     } else {
       scenes = [];
     }
@@ -168,10 +182,8 @@
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
     }
   }
 
@@ -248,6 +260,16 @@
       );
       loadExternalConfig("linked", "Linked", linkedConfig);
     } catch (error) {}
+
+    sceneSelector.addEventListener("wheel", (e) => {
+      if (!e.deltaY || e.shiftKey) return;
+      e.preventDefault(); // stop scrolling in another direction
+      e.currentTarget.scrollLeft += (e.deltaY + e.deltaX) * 0.6;
+      // sceneSelector.scrollBy({
+      //   left: (e.deltaY + e.deltaX) * 3,
+      //   behavior: "smooth",
+      // });
+    });
   });
 </script>
 
@@ -262,7 +284,7 @@
   <div class="top">
     <h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
     <div class="horiz">
-      <button on:click={toggleFullscreen}>Fullscreen</button>
+      <button on:click={toggleFullscreen}>⛶</button>
       <button on:click={(_) => ($showingModal = ["mqttConfig"])}
         >MQTT:
         <span
