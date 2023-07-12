@@ -92,7 +92,7 @@
             actor: pair.actor,
             character: data[j][i],
             active:
-              data[j][i].trim() !== "" && data[j][i].trim().slice(2) !== "//",
+              data[j][i].trim() !== "" && data[j][i].trim().slice(0, 2) !== "//",
           };
         });
         newScenes.push({
