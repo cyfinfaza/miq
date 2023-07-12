@@ -16,8 +16,8 @@
           <h3 style="font-weight: 400; text-overflow: clip;">{i}</h3>
           <div>
             <p
-              style="font-size: 0.8em; font-weight: 200;"
               class="actorLabel"
+							class:bigLabel={scene?.mics[i]?.character?.startsWith("#")}
               class:actorChanging={scene?.mics[i]?.switchingFrom}
             >
               {#if scene?.mics[i]?.switchingFrom}
@@ -27,7 +27,7 @@
                 {scene?.mics[i]?.actor || ""}
               {/if}
             </p>
-            <p style="font-size: 0.9em; font-weight: 600;">
+            <p class={scene?.mics[i]?.character?.startsWith("#") ? "smallLabel" : "bigLabel"}>
               {scene?.mics[i]?.character || ""}
             </p>
           </div>
@@ -97,6 +97,15 @@
       color: #000;
     }
   }
+
+	.bigLabel {
+		font-size: 0.9em;
+		font-weight: 600;
+	}
+	.smallLabel, .actorLabel:not(.bigLabel) {
+		font-size: 0.8em;
+		font-weight: 200;
+	}
 
   .accent {
     border-color: transparent;
