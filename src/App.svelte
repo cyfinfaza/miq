@@ -24,6 +24,8 @@
 
 	let loading = ["Loading..."];
 
+	let miniMode = false;
+
 	/** @type {HTMLDivElement} */
 	let sceneSelector;
 
@@ -286,11 +288,13 @@
 <main
 	class:showingModal={$showingModal.length > 0}
 	class:hideButtons={rxActive && $mqttConfig.rx_preview}
+	class:miniMode
 >
 	<div class="top">
 		<h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
 		<div class="horiz" style="height: 100%; padding-block: 4px;">
 			<button on:click={toggleFullscreen}>Fullscreen</button>
+			<button on:click={() => (miniMode = !miniMode)}>Mini</button>
 			<button
 				on:click={(_) => ($showingModal = ["mqttConfig"])}
 				class="connectionButton"
