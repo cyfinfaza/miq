@@ -2,7 +2,6 @@
   import Modal from "./modal.svelte";
   import { db, storedConfigs, configs, sheets } from "../lib/db";
   import Papa from "papaparse";
-  import { onMount } from "svelte";
   import { ddp } from "../lib/db";
 
   let mode = "configs";
@@ -52,13 +51,6 @@
   //       (item) => item.id === editing.data?.id
   //     ),
   //   };
-  onMount((_) => {
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Delete") {
-        deleteCurrent();
-      }
-    });
-  });
 
   $: console.log(editing);
 
@@ -90,11 +82,12 @@
     if (linkedConfig.table) {
       delete linkedConfig.table;
     }
+    let newName = linkedConfig.name.replace(/^(Linked: )/, ""); // remove linked prefix as it's not linked anymroe
     // add sheet to sheets
-    const sheet = { sheetId, name: linkedConfig.name };
+    const sheet = { sheetId, name: newName };
     const newSheetId = await db.sheets.add(sheet);
     // add config to configs
-    await db.configs.add({ ...linkedConfig, sheetId: newSheetId });
+    await db.configs.add({ ...linkedConfig, name: newName, sheetId: newSheetId });
     await new Promise((resolve) => {
       Papa.parse(`https://docs.google.com/spreadsheets/u/0/d/${sheet.sheetId}/export?format=csv`, {
         download: true,
@@ -123,7 +116,14 @@
     {/if}
   </p>
   <div class="horiz" style="width: 100%; height: 500px">
-    <div class="verti itemList">
+    <div
+      class="verti itemList"
+      on:keydown={(e) => {
+        if (e.key === "Delete") {
+          deleteCurrent();
+        }
+      }}
+    >
       {#each { configs: $storedConfigs, sheets: $sheets }[mode] || [] as item, i}
         <button class="item" class:untitled={item.name === ""} class:selected={editing?.data?.id === item.id} on:click={() => (editing = { mode, data: item })}>
           {item.name || "Untitled"}

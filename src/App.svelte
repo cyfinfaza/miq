@@ -1,5 +1,4 @@
 <script>
-  import Modal from "./components/modal.svelte";
   import Scene from "./components/scene.svelte";
   import {
     showingModal,
@@ -11,14 +10,12 @@
   } from "./lib/stores";
   import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
-  import Papa from "papaparse";
   import { onMount, tick } from "svelte";
   import DbManager from "./components/dbManager.svelte";
 
   import { ddp, loadExternalConfig, updateSheet } from "./lib/db";
 
   import { configs, sheets } from "./lib/db";
-  import osc from "osc-js";
   import MqttConfig from "./components/mqttConfig.svelte";
   import { incomingMessage, mqttClient } from "./lib/mqtt";
 
@@ -262,22 +259,31 @@
       );
       loadExternalConfig("linked", "Linked", linkedConfig);
     } catch (error) {}
-
-    sceneSelector.addEventListener("wheel", (e) => {
-      if (!e.deltaY || e.shiftKey) return;
-      e.preventDefault(); // stop scrolling in another direction
-      e.currentTarget.scrollLeft += (e.deltaY + e.deltaX) * 0.6;
-      // sceneSelector.scrollBy({
-      //   left: (e.deltaY + e.deltaX) * 3,
-      //   behavior: "smooth",
-      // });
-    });
   });
+	let debouncingFire = false;
 </script>
 
 <svelte:head>
   <title>{selectedConfig?.name || "miq"}</title>
 </svelte:head>
+
+<svelte:window
+	on:keydown={(e) => {
+		if ($showingModal.length) return; // only run on main page
+		document.activeElement.blur();
+		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
+		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
+		else if (!debouncingFire && e.key === " " && previewIndex < scenes.length) {
+			debouncingFire = true;
+			fire(previewIndex);
+			// setTimeout(() => debouncingFire = false, 1000);
+		}
+	}}
+	on:keyup={(e) => {
+		if (e.key === " ") debouncingFire = false;
+	}}
+	on:blur={() => debouncingFire = false}
+/>
 
 <main
   class:showingModal={$showingModal.length > 0}
@@ -334,7 +340,19 @@
     </div>
   </div>
   <div class="middle">
-    <div class="sceneselector" bind:this={sceneSelector}>
+    <div
+			class="sceneselector"
+			bind:this={sceneSelector}
+			on:mousewheel={(e) => {
+				if (!e.deltaY || e.shiftKey) return;
+				e.preventDefault(); // stop scrolling in another direction
+				e.currentTarget.scrollLeft += (e.deltaY + e.deltaX) * 0.6;
+				// sceneSelector.scrollBy({
+				//   left: (e.deltaY + e.deltaX) * 3,
+				//   behavior: "smooth",
+				// });
+			}}
+		>
       <div class="sceneProgress">
         <strong>{currentIndex + 1}</strong>/{scenes.length}
         <!-- ({parseInt((previewIndex+1)/scenes.length*100)}%) -->
