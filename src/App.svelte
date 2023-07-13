@@ -289,10 +289,13 @@
 >
 	<div class="top">
 		<h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
-		<div class="horiz">
+		<div class="horiz" style="height: 100%; padding-block: 4px;">
 			<button on:click={toggleFullscreen}>Fullscreen</button>
-			<button on:click={(_) => ($showingModal = ["mqttConfig"])}
-				>MQTT:
+			<button
+				on:click={(_) => ($showingModal = ["mqttConfig"])}
+				class="connectionButton"
+			>
+				MQTT: <br />
 				<span
 					style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}
 				>
@@ -308,9 +311,11 @@
 			>
 			<button
 				on:click={$oscStatus.connected ? closeOSC() : openOSC()}
+				class="connectionButton"
 				style="position: relative;"
 			>
 				OSC/WS:
+				<br />
 				<span
 					style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
 				>
@@ -391,11 +396,11 @@
 	main {
 		display: grid;
 		grid-template-rows: 3em 1fr auto;
-		gap: 12px;
+		gap: var(--spacing);
 		height: 100%;
 		width: 100%;
 		box-sizing: border-box;
-		padding: 12px;
+		padding: var(--spacing);
 		transition: var(--modal-transition);
 		&.showingModal {
 			transform: scale(0.8);
@@ -412,8 +417,14 @@
 		height: 100%;
 		button,
 		select {
+			height: 100%;
 			font-size: 1.1em;
+			&.connectionButton {
+				min-width: 130px;
+				font-size: 1rem;
+			}
 			font-weight: 300;
+			text-align: left;
 			strong {
 				font-weight: 900;
 			}
@@ -422,7 +433,7 @@
 	.buttons {
 		display: flex;
 		align-items: stretch;
-		gap: 12px;
+		gap: var(--spacing);
 		height: 4em;
 		width: 100%;
 		> * {
@@ -437,7 +448,7 @@
 	.middle {
 		display: grid;
 		align-items: stretch;
-		gap: 24px;
+		gap: var(--spacing-required);
 		grid-template-rows: auto 1fr;
 		overflow: hidden;
 	}
@@ -488,7 +499,7 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--spacing);
 		overflow: auto;
 	}
 </style>

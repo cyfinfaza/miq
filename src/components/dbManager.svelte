@@ -270,7 +270,7 @@
 			}
 		}
 		border: 2px solid var(--fg);
-		border-radius: 4px;
+		border-radius: calc(var(--rounding) * 1 / 3);
 	}
 	.itemConfig {
 		// width: 500px;
