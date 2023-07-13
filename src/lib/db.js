@@ -1,5 +1,4 @@
 import Dexie from "dexie";
-import { liveQuery } from "dexie";
 import { derived, writable } from "svelte/store";
 import Papa from "papaparse";
 import { selectedConfigId } from "./stores";
@@ -66,4 +65,23 @@ export async function loadExternalConfig(id, source, config) {
     return { ...configs, [id]: newConfig };
   });
   selectedConfigId.update((_) => id);
+}
+
+/** refetches and updates a sheet in the db */
+// todo: add support for linked mode?
+export async function updateSheet(sheetDbId) {
+	let editing = await db.sheets.get({id: sheetDbId});
+	if (editing?.sheetId) await new Promise((resolve) => {
+		Papa.parse(`https://docs.google.com/spreadsheets/u/0/d/${editing.sheetId}/export?format=csv`, {
+			download: true,
+			header: false,
+			complete: async function (results) {
+				let data = results.data;
+				if (data) {
+					await db.sheets.update({ id: sheetDbId }, { ...editing, table: data, lastFetched: new Date() });
+				}
+				resolve();
+			},
+		});
+	});
 }

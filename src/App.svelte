@@ -15,7 +15,7 @@
   import { onMount, tick } from "svelte";
   import DbManager from "./components/dbManager.svelte";
 
-  import { ddp, loadExternalConfig } from "./lib/db";
+  import { ddp, loadExternalConfig, updateSheet } from "./lib/db";
 
   import { configs, sheets } from "./lib/db";
   import osc from "osc-js";
@@ -30,11 +30,13 @@
   let selectedConfig = null;
   $: selectedConfig =
     ($configs || []).find((config) => config.id === $selectedConfigId) || {};
+
+	/** current sheet contents */
   let data = [];
   $: data =
     selectedConfig?.table ||
     (selectedConfig.sheetId
-      ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table
+      ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId)?.table
       : []);
 
   // $: console.log(data);
@@ -317,9 +319,8 @@
       </button>
       <!-- <button>MIDI</button> -->
       {#if !rxActive}
-        <button on:click={(_) => ($showingModal = ["dbConfig"])}
-          >Database</button
-        >
+      	<button on:click={() => updateSheet(selectedConfig.sheetId)} disabled={!selectedConfig.sheetId || selectedConfig.table || !data}>⟳</button>
+        <button on:click={() => ($showingModal = ["dbConfig"])}>Database</button>
       {/if}
       <select
         style="font-weight: 900;"
