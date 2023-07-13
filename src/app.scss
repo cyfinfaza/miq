@@ -20,6 +20,7 @@ body {
 
 body {
   background-color: var(--bg);
+  color: #fff;
   color: var(--text);
   font-feature-settings: "ss01", "zero";
   font-size: 1.2em;
@@ -59,6 +60,7 @@ button,
 input,
 select,
 textarea {
+  color: inherit;
   background: none;
   border: 2px solid var(--fg);
   font-size: 1rem;
@@ -117,4 +119,8 @@ select {
   font-size: 8px;
   background: var(--bg);
   padding-inline: 3px;
+}
+
+body, html {
+  position: fixed;
 }
