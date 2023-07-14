@@ -44,11 +44,13 @@
 			{/each}
 		</div>
 	</div>
-	<div style="min-width: 0;" class="notes">
-		<h3 style="margin-block: 0.2em;">Notes</h3>
-		<p style="overflow: auto; white-space: pre-line;">
-			{scene?.notes || ""}
-		</p>
+	<div style="overflow: auto; position: relative;">
+		<div class="notes">
+			<h3 style="margin-block: 0.2em;">Notes</h3>
+			<p style="overflow: auto; white-space: pre-line;">
+				{scene?.notes || ""}
+			</p>
+		</div>
 	</div>
 </div>
 
@@ -137,8 +139,12 @@
 		opacity: 0.2;
 	}
 	.notes {
-		overflow: auto;
-		max-height: 100%;
+		// overflow: auto;
+		position: absolute;
+		top: 0;
+		left: 0;
+		min-width: 0;
+		// max-height: 100%;
 		// white-space: pre-line;
 	}
 	.liveBadge {
