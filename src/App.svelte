@@ -11,6 +11,8 @@
 	} from "./lib/stores";
 	import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
 
+	import "boxicons";
+
 	import Papa from "papaparse";
 	import { onMount, tick } from "svelte";
 	import DbManager from "./components/dbManager.svelte";
@@ -293,8 +295,16 @@
 	<div class="top">
 		<h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
 		<div class="horiz" style="height: 100%; padding-block: 4px;">
-			<button on:click={toggleFullscreen}>Fullscreen</button>
-			<button on:click={() => (miniMode = !miniMode)}>Mini</button>
+			<button on:click={toggleFullscreen}>
+				<!-- <span class="material-symbols-outlined"> fullscreen </span> -->
+				<box-icon name="fullscreen" color="currentColor" size="1em" />
+				<br />
+				Fullscreen
+			</button>
+			<button on:click={() => (miniMode = !miniMode)}>
+				<box-icon name="collapse-alt" color="currentColor" size="1em" />
+				<br />Compact
+			</button>
 			<button
 				on:click={(_) => ($showingModal = ["mqttConfig"])}
 				class="connectionButton"
@@ -317,6 +327,7 @@
 				on:click={$oscStatus.connected ? closeOSC() : openOSC()}
 				class="connectionButton"
 				style="position: relative;"
+				style:display={rxActive ? "none" : null}
 			>
 				OSC/WS:
 				<br />
@@ -328,15 +339,27 @@
             ({$oscStatus.address})
           {/if} -->
 				</span>
-				<span class="minilabel">tap to toggle connection</span>
+				<span class="minilabel"
+					>tap to {$oscStatus.connected ? "disconnect" : "connect"}</span
+				>
 			</button>
 			<!-- <button>MIDI</button> -->
-			{#if !rxActive}
-				<button on:click={(_) => ($showingModal = ["dbConfig"])}
-					>Database</button
-				>
-			{/if}
-			<select
+			<!-- {#if !rxActive} -->
+			<button
+				on:click={(_) => ($showingModal = ["dbConfig"])}
+				disabled={rxActive}
+				style="white-space: nowrap; text-overflow: ellipses;"
+			>
+				<div class="iconlabel" style="font-size: 0.8em">
+					<box-icon name="data" color="currentColor" size="1em" />Database
+				</div>
+				<br />
+				<strong style="font-size: 1.1em; ">
+					{$configs.find((item) => item.id === $selectedConfigId)?.name || "--"}
+				</strong>
+			</button>
+			<!-- {/if} -->
+			<!-- <select
 				style="font-weight: 900;"
 				bind:value={$selectedConfigId}
 				disabled={rxActive}
@@ -344,7 +367,7 @@
 				{#each $configs || [] as item}
 					<option value={item.id}>{item.name || "Untitled"}</option>
 				{/each}
-			</select>
+			</select> -->
 		</div>
 	</div>
 	<div class="middle">
@@ -408,7 +431,8 @@
 		transition: var(--modal-transition);
 		&.showingModal {
 			// transform: scale(0.8);
-			opacity: 0;
+			opacity: 0.2;
+			filter: blur(20px);
 		}
 		&.hideButtons {
 			grid-template-rows: 3em 1fr;
@@ -422,18 +446,18 @@
 		gap: var(--spacing);
 		.miniMode & {
 			height: 2.5em;
-			button,
-			select {
-				font-size: 1em;
-			}
+			// button,
+			// select {
+			// 	font-size: 1em;
+			// }
 		}
 		button,
 		select {
 			height: 100%;
 			font-size: 1.1em;
+			font-size: 0.83em;
 			&.connectionButton {
 				min-width: 130px;
-				font-size: 0.83em;
 			}
 			font-weight: 300;
 			text-align: left;

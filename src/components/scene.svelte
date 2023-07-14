@@ -56,7 +56,7 @@
 	.scene {
 		display: grid;
 		grid-template-columns: 4fr 1fr;
-		height: 13em;
+		height: 13.5em;
 		gap: var(--spacing-required);
 		padding: var(--spacing);
 		border-radius: var(--rounding);
@@ -76,9 +76,9 @@
 		border-color: var(--red);
 	}
 	.channels {
-		flex: 1;
-		.miniMode & {
-			flex: unset;
+		:not(.miniMode) & {
+			flex: 1;
+			grid-auto-rows: 1fr;
 		}
 		display: grid;
 		gap: var(--spacing);

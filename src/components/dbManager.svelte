@@ -4,6 +4,9 @@
 	import Papa from "papaparse";
 	import { onMount } from "svelte";
 	import { ddp } from "../lib/db";
+	import { selectedConfigId } from "../lib/stores";
+
+	import "boxicons";
 
 	let mode = "configs";
 	let editing = {};
@@ -126,7 +129,7 @@
 	}
 </script>
 
-<Modal modalName="dbConfig">
+<Modal modalName="dbConfig" let:closeModal>
 	<h1>Database Config</h1>
 	<p>
 		<select bind:value={mode}>
@@ -138,7 +141,7 @@
 			<button on:click={importLinkedConfig}>Import Linked Config</button>
 		{/if}
 	</p>
-	<div class="horiz" style="width: 100%; height: 500px">
+	<div class="horiz" style="width: 100%; height: 600px">
 		<div class="verti itemList">
 			{#each { configs: $storedConfigs, sheets: $sheets }[mode] || [] as item, i}
 				<button
@@ -155,7 +158,15 @@
 			{#if typeof editing?.data?.id === "number"}
 				<p>
 					Name: <input type="text" bind:value={editing.data.name} />
-					<button class="red" on:click={deleteCurrent}>Delete Entry</button>
+					{#if editing?.mode === "configs"}
+						<button
+							class="white"
+							on:click={() => {
+								$selectedConfigId = editing.data.id;
+								closeModal();
+							}}>Open Config</button
+						>
+					{/if}
 				</p>
 				{#if editing?.mode === "sheets"}
 					<p>
@@ -235,12 +246,22 @@
 							bind:value={editing.data.scenesStartCol}
 						/>
 					</p>
-					<details>
-						<summary>Export as link</summary>
-						<a href={exportedLink} style="word-wrap: break-word;"
-							>{exportedLink}</a
-						>
-					</details>
+					<!-- <p>
+						<button class="horiz">
+							<box-icon name="window-open" color="currentColor" /> Open Config
+						</button>
+					</p> -->
+					<p>
+						<details>
+							<summary>Export as link</summary>
+							<a href={exportedLink} style="word-wrap: break-word;"
+								>{exportedLink}</a
+							>
+						</details>
+					</p>
+					<p style="margin-top: 24px;">
+						<button class="red" on:click={deleteCurrent}>Delete Entry</button>
+					</p>
 				{/if}
 			{/if}
 		</div>
