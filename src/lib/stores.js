@@ -3,9 +3,9 @@ import { writable } from "svelte/store";
 export const showingModal = writable([]);
 
 window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    showingModal.set([]);
-  }
+	if (e.key === "Escape") {
+		showingModal.set([]);
+	}
 });
 
 export const dataSourceConfig = writable(JSON.parse(localStorage.getItem("dataSourceConfig")) || []);
