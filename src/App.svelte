@@ -293,7 +293,16 @@
 	class:miniMode
 >
 	<div class="top">
-		<h1 style="font-weight: 100; opacity: 0.5;">{loading[0] || "miq"}</h1>
+		<h1
+			style="font-weight: 100; opacity: 0.5;"
+			on:click={() => {
+				if (confirm("Refresh? (connections could be lost)")) {
+					window.location.reload();
+				}
+			}}
+		>
+			{loading[0] || "miq"}
+		</h1>
 		<div class="horiz" style="height: 100%; padding-block: 4px;">
 			<button on:click={toggleFullscreen}>
 				<!-- <span class="material-symbols-outlined"> fullscreen </span> -->
