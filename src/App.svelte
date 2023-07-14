@@ -387,8 +387,8 @@
 			{/each}
 		</div>
 		<div class="sceneview">
-			<Scene scene={scenes[previewIndex]} --border-color="var(--green)" />
-			<Scene scene={scenes[currentIndex]} live --border-color="var(--red)" />
+			<Scene scene={scenes[previewIndex]} />
+			<Scene scene={scenes[currentIndex]} live />
 		</div>
 	</div>
 	<div class="buttons">
