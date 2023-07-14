@@ -5,7 +5,12 @@
 
 <div class="scene" class:live>
 	<div class="mics">
-		<h2>{scene ? scene.name : "--"}</h2>
+		<h2 class="horiz">
+			{#if live}
+				<span class="liveBadge">Live</span>
+			{/if}
+			<span>{scene ? scene.name : "--"}</span>
+		</h2>
 		<div class="channels">
 			{#each Object.keys(scene?.mics || {}) as i}
 				<div
@@ -39,9 +44,11 @@
 			{/each}
 		</div>
 	</div>
-	<div style="min-width: 0;">
+	<div style="min-width: 0;" class="notes">
 		<h3 style="margin-block: 0.2em;">Notes</h3>
-		<p style="overflow: auto; white-space: pre-line;">{scene?.notes || ""}</p>
+		<p style="overflow: auto; white-space: pre-line;">
+			{scene?.notes || ""}
+		</p>
 	</div>
 </div>
 
@@ -49,11 +56,16 @@
 	.scene {
 		display: grid;
 		grid-template-columns: 4fr 1fr;
+		height: 13em;
 		gap: var(--spacing-required);
 		padding: var(--spacing);
 		border-radius: var(--rounding);
 		border: 2px solid var(--green);
 		opacity: var(--opacity);
+		:global(.miniMode) & {
+			height: unset;
+			max-height: 13em;
+		}
 	}
 	.mics {
 		display: flex;
@@ -64,12 +76,16 @@
 		border-color: var(--red);
 	}
 	.channels {
+		flex: 1;
+		.miniMode & {
+			flex: unset;
+		}
 		display: grid;
 		gap: var(--spacing);
 		grid-template-columns: repeat(8, 1fr);
 	}
 	.channel {
-		height: 4em;
+		// height: 4em;
 		border-radius: calc(var(--rounding) * 0.8);
 		padding: calc(var(--spacing) * 0.8);
 		border: 2px solid var(--fg);
@@ -117,5 +133,20 @@
 	}
 	.dne {
 		opacity: 0.2;
+	}
+	.notes {
+		overflow: auto;
+		max-height: 100%;
+		// white-space: pre-line;
+	}
+	.liveBadge {
+		background: var(--red);
+		color: var(--red-text);
+		font-weight: 600;
+		text-transform: uppercase;
+		font-size: 0.75em;
+		padding: 0.1em 0.2em;
+		border-radius: min(0.2em, var(--rounding));
+		vertical-align: text-bottom;
 	}
 </style>

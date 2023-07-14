@@ -399,7 +399,7 @@
 <style lang="scss">
 	main {
 		display: grid;
-		grid-template-rows: 3em 1fr auto;
+		grid-template-rows: auto 1fr auto;
 		gap: var(--spacing);
 		height: 100%;
 		width: 100%;
@@ -407,7 +407,7 @@
 		padding: var(--spacing);
 		transition: var(--modal-transition);
 		&.showingModal {
-			transform: scale(0.8);
+			// transform: scale(0.8);
 			opacity: 0;
 		}
 		&.hideButtons {
@@ -418,14 +418,22 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 100%;
+		height: 3em;
+		gap: var(--spacing);
+		.miniMode & {
+			height: 2.5em;
+			button,
+			select {
+				font-size: 1em;
+			}
+		}
 		button,
 		select {
 			height: 100%;
 			font-size: 1.1em;
 			&.connectionButton {
 				min-width: 130px;
-				font-size: 1rem;
+				font-size: 0.83em;
 			}
 			font-weight: 300;
 			text-align: left;
@@ -443,16 +451,22 @@
 		> * {
 			flex: 1;
 			font-size: 1.2em;
+			.miniMode & {
+				font-size: 1em;
+			}
 			font-weight: bold;
 		}
 		.hideButtons & {
 			display: none;
 		}
+		.miniMode & {
+			height: 3em;
+		}
 	}
 	.middle {
 		display: grid;
 		align-items: stretch;
-		gap: var(--spacing-required);
+		gap: var(--spacing);
 		grid-template-rows: auto 1fr;
 		overflow: hidden;
 	}
@@ -460,7 +474,7 @@
 		display: flex;
 		flex-direction: row;
 		// align-items: center;
-		gap: 6px;
+		gap: min(6px, var(--spacing));
 		overflow-y: hidden;
 		overflow-x: auto;
 		// width: 100%;
@@ -475,10 +489,10 @@
 			width: 6px;
 			height: 6px;
 		}
-		padding-bottom: 6px;
+		padding-bottom: min(6px, var(--spacing));
 		&::-webkit-scrollbar-thumb {
 			background: var(--fg);
-			border-radius: 6px;
+			border-radius: min(6px, var(--rounding));
 		}
 		.sceneProgress {
 			padding: 0 12px;
