@@ -44,11 +44,13 @@
 			{/each}
 		</div>
 	</div>
-	<div style="min-width: 0;" class="notes">
-		<h3 style="margin-block: 0.2em;">Notes</h3>
-		<p style="overflow: auto; white-space: pre-line;">
-			{scene?.notes || ""}
-		</p>
+	<div style="overflow: auto; position: relative;">
+		<div class="notes">
+			<h3 style="margin-block: 0.2em;">Notes</h3>
+			<p style="overflow: auto; white-space: pre-line;">
+				{scene?.notes || ""}
+			</p>
+		</div>
 	</div>
 </div>
 
@@ -56,16 +58,15 @@
 	.scene {
 		display: grid;
 		grid-template-columns: 4fr 1fr;
-		height: 13em;
 		gap: var(--spacing-required);
 		padding: var(--spacing);
 		border-radius: var(--rounding);
 		border: 2px solid var(--green);
 		opacity: var(--opacity);
-		:global(.miniMode) & {
-			height: unset;
-			max-height: 13em;
-		}
+		// :global(.miniMode) & {
+		// 	height: unset;
+		// 	max-height: 10em;
+		// }
 	}
 	.mics {
 		display: flex;
@@ -76,16 +77,16 @@
 		border-color: var(--red);
 	}
 	.channels {
-		flex: 1;
-		.miniMode & {
-			flex: unset;
-		}
 		display: grid;
 		gap: var(--spacing);
 		grid-template-columns: repeat(8, 1fr);
+		grid-auto-rows: 1fr;
+		:global(.miniMode) & {
+			grid-auto-rows: unset;
+		}
 	}
 	.channel {
-		// height: 4em;
+		height: 4em;
 		border-radius: calc(var(--rounding) * 0.8);
 		padding: calc(var(--spacing) * 0.8);
 		border: 2px solid var(--fg);
@@ -100,6 +101,9 @@
 			white-space: nowrap;
 			text-overflow: ellipsis;
 			overflow: hidden;
+		}
+		:global(.miniMode) & {
+			height: unset;
 		}
 	}
 
@@ -135,8 +139,12 @@
 		opacity: 0.2;
 	}
 	.notes {
-		overflow: auto;
-		max-height: 100%;
+		// overflow: auto;
+		position: absolute;
+		top: 0;
+		left: 0;
+		min-width: 0;
+		// max-height: 100%;
 		// white-space: pre-line;
 	}
 	.liveBadge {

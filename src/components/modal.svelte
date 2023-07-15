@@ -1,23 +1,23 @@
 <script>
 	export let modalName;
 	import { showingModal } from "../lib/stores";
+	const closeModal = (_) =>
+		($showingModal = $showingModal.filter((item) => item !== modalName));
 </script>
 
 <div class="modal" class:showing={$showingModal[0] === modalName}>
-	<button
-		style="aspect-ratio: 1; padding: 0.75em;"
-		on:click={(_) =>
-			($showingModal = $showingModal.filter((item) => item !== modalName))}
+	<button style="aspect-ratio: 1; padding: 0.75em;" on:click={closeModal}
 		>esc</button
 	>
-	<slot />
+	<slot {closeModal} />
 </div>
 
 <style lang="scss">
 	.modal {
+		// background-color: var(--bg);
 		opacity: 0;
 		position: absolute;
-		transform: scale(0.8);
+		transform: scale(1.2);
 		transition: var(--modal-transition);
 		display: flex;
 		flex-direction: column;
