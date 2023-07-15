@@ -2,10 +2,12 @@
 	import { onMount, tick } from "svelte";
 	import "boxicons";
 
+	import Scene from "./components/scene.svelte";
+	import DbManager from "./components/dbManager.svelte";
+	import MqttConfig from "./components/mqttConfig.svelte";
+
 	import {
 		showingModal,
-		dataSourceConfig,
-		selectedDataSourceId,
 		selectedConfigId,
 		mqttStatus,
 		mqttConfig,
@@ -20,13 +22,11 @@
 	} from "./lib/db";
 	import { incomingMessage, mqttClient } from "./lib/mqtt";
 
-	import Scene from "./components/scene.svelte";
-	import DbManager from "./components/dbManager.svelte";
-	import MqttConfig from "./components/mqttConfig.svelte";
-
 	let loading = ["Loading..."];
 
 	let miniMode = false;
+	if (localStorage.getItem("miniMode") == 1) miniMode = true;
+	$: localStorage.setItem("miniMode", miniMode ? 1 : 0);
 
 	/** @type {HTMLDivElement} */
 	let sceneSelector;
@@ -297,10 +297,13 @@
 
 <main
 	class:showingModal={$showingModal.length > 0}
+	inert={$showingModal.length}
 	class:hideButtons={rxActive && $mqttConfig.rx_preview}
 	class:miniMode
 >
 	<div class="top">
+		<!-- svelte-ignore a11y-no-noninteractive-element-to-interactive-role -->
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<h1
 			style="font-weight: 100; opacity: 0.5;"
 			on:click={() => {
@@ -335,9 +338,6 @@
 							? $mqttConfig.mode + "/" + $mqttConfig.topic
 							: "Disconnected"}</strong
 					>
-					<!-- {#if $oscStatus.address}
-						({$oscStatus.address})
-					{/if} -->
 				</span></button
 			>
 			<button
@@ -360,7 +360,6 @@
 					>tap to {$oscStatus.connected ? "disconnect" : "connect"}</span
 				>
 			</button>
-			<!-- <button>MIDI</button> -->
 			<button
 				on:click={() => updateSheet(selectedConfig.sheetId)}
 				disabled={!selectedConfig.sheetId ||
@@ -369,7 +368,7 @@
 					rxActive}
 			>
 				<box-icon name="refresh" color="currentColor" size="1em" />
-				<br />Refresh
+				<br />Update
 			</button>
 			<button
 				on:click={(_) => ($showingModal = ["dbConfig"])}
@@ -493,14 +492,14 @@
 			height: 100%;
 			font-size: 1.1em;
 			font-size: 0.83em;
-			&.connectionButton {
-				min-width: 130px;
-			}
 			font-weight: 300;
 			text-align: left;
 			strong {
 				font-weight: 900;
 			}
+		}
+		.connectionButton {
+			min-width: 130px;
 		}
 	}
 	.buttons {

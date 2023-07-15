@@ -50,6 +50,11 @@ window.client = client;
 export function onFireOsc(scene) {
 	console.log("onFireOsc", scene);
 
+	// if (client.status() !== osc.STATUS.IS_OPEN) {
+	// 	console.warn("not firing, osc not connected");
+	// 	return;
+	// }
+
 	if (scene?.mics) {
 		Object.keys(scene.mics).forEach((channel) => {
 			let mic = scene.mics[channel];

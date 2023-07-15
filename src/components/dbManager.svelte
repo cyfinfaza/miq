@@ -26,7 +26,7 @@
 		if (editing?.data?.sheetId && editing?.data?.sheetId !== "") {
 			await new Promise((resolve) => {
 				Papa.parse(
-					`https://docs.google.com/spreadsheets/u/0/d/${editing.data.sheetId}/export?format=csv`,
+					`https://docs.google.com/spreadsheets/d/${editing.data.sheetId}/export?format=csv`,
 					{
 						download: true,
 						header: false,
@@ -102,7 +102,7 @@
 		await db.configs.add({ ...linkedConfig, sheetId: newSheetId });
 		await new Promise((resolve) => {
 			Papa.parse(
-				`https://docs.google.com/spreadsheets/u/0/d/${sheet.sheetId}/export?format=csv`,
+				`https://docs.google.com/spreadsheets/d/${sheet.sheetId}/export?format=csv`,
 				{
 					download: true,
 					header: false,
@@ -141,6 +141,8 @@
 					deleteCurrent();
 				}
 			}}
+			role="listbox"
+			tabindex="0"
 		>
 			{#each { configs: $storedConfigs, sheets: $sheets }[mode] || [] as item, i}
 				<button
@@ -148,6 +150,12 @@
 					class:untitled={item.name === ""}
 					class:selected={editing?.data?.id === item.id}
 					on:click={() => (editing = { mode, data: item })}
+					on:dblclick={() => {
+						if (editing?.mode === "configs") {
+							$selectedConfigId = item.id;
+							closeModal();
+						}
+					}}
 				>
 					{item.name || "Untitled"}
 				</button>
