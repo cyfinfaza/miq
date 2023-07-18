@@ -13,11 +13,7 @@
 		</h2>
 		<div class="channels">
 			{#each Object.keys(scene?.mics || {}) as i}
-				<div
-					class="channel"
-					class:accent={scene?.mics[i]?.active}
-					class:dne={!scene?.mics[i]}
-				>
+				<div class="channel" class:accent={scene?.mics[i]?.active} class:dne={!scene?.mics[i]}>
 					<h3 style="font-weight: 400; text-overflow: clip;">{i}</h3>
 					<div>
 						<p
@@ -32,11 +28,7 @@
 								{scene?.mics[i]?.actor || ""}
 							{/if}
 						</p>
-						<p
-							class={scene?.mics[i]?.character?.startsWith("#")
-								? "smallLabel"
-								: "bigLabel"}
-						>
+						<p class={scene?.mics[i]?.character?.startsWith("#") ? "smallLabel" : "bigLabel"}>
 							{scene?.mics[i]?.character || ""}
 						</p>
 					</div>

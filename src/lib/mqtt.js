@@ -2,8 +2,10 @@ import Paho from "paho-mqtt";
 import { get, writable } from "svelte/store";
 import { makeToast, mqttConfig, mqttStatus } from "./stores";
 
+/** @type {Paho.Client} */
 export let mqttClient;
 
+/** @type {import("svelte/store").Writable<Paho.Message|null>} */
 export let incomingMessage = writable(null);
 
 export function getCompleteMqttConfig(config) {

@@ -40,4 +40,4 @@ export function makeToast(title, message, type = "info") {
 	});
 }
 
-window?.makeToast = makeToast;
+if (window) window.makeToast = makeToast;

@@ -23,6 +23,7 @@ export const oscStatus = writable({ connected: false, address: null });
 // 	console.log(msg);
 // });
 
+/** @type {osc} */
 let client;
 
 // window.socket = socket;
