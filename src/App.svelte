@@ -56,7 +56,9 @@
 	$: if (scenes.length && scenes[previewIndex]?.name) {
 		history.replaceState(scenes[previewIndex].name, "");
 	}
-	$: {
+
+	function regenerateScenes(selectedConfig, data) {
+		console.log("regenerating scenes");
 		const config = {
 			notesRow: parseInt(selectedConfig.notesRow ?? ddp.notesRow),
 			namesRow: parseInt(selectedConfig.namesRow ?? ddp.namesRow),
@@ -149,10 +151,49 @@
 					historyState = null;
 				});
 			}
+
+			// try to keep same position when updating sheet
+			if (updateData !== null) {
+				let newNames = scenes.map((scene) => scene.name);
+
+				/** @param {number} startIndex @param {string} targetString @param {undefined|number} fallback @returns {number} index */
+				function findNewIndex(startIndex, targetString, fallback = undefined) {
+					if (startIndex < 0) return -1;
+					let right = startIndex,
+						left = startIndex;
+					while (left >= 0 || right < newNames.length) {
+						if (right < newNames.length && newNames[right] === targetString)
+							return right;
+						if (left >= 0 && newNames[left] === targetString) return left;
+						right++;
+						left--;
+					}
+					return fallback || startIndex;
+				}
+
+				currentIndex = findNewIndex(
+					currentIndex, // old
+					updateData.oldCurrentName,
+					-1 // don't say we have some random thing fired
+				);
+				previewIndex = findNewIndex(
+					previewIndex, // old
+					updateData.oldPreviewName
+				);
+
+				updateData = null;
+			}
 		} else {
 			scenes = [];
 		}
 	}
+
+	// only want to regenerate when these specific parameters change
+	$: regenerateScenes(selectedConfig, data);
+
+	// when we refresh the data, we want to keep the same scene selected
+	// this will temporarily hold some old scene data until the new scenes list is regenerated as it may take a while
+	let updateData = null;
 
 	let previewIndex = 0;
 	let currentIndex = -1;
@@ -361,11 +402,14 @@
 				>
 			</button>
 			<button
-				on:click={() => updateSheet(selectedConfig.sheetId)}
-				disabled={!selectedConfig.sheetId ||
-					selectedConfig.table ||
-					!data ||
-					rxActive}
+				on:click={() => {
+					updateData = {
+						oldPreviewName: scenes[previewIndex]?.name,
+						oldCurrentName: scenes[currentIndex]?.name,
+					};
+					updateSheet(selectedConfig.sheetId);
+				}}
+				disabled={!selectedConfig.sheetId || selectedConfig.table || rxActive}
 			>
 				<box-icon name="refresh" color="currentColor" size="1em" />
 				<br />Update
