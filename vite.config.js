@@ -14,10 +14,11 @@ export default defineConfig({
 			workbox: {
 				runtimeCaching: [
 					{
-						urlPattern: /^https:\/\/rsms\.me\/.*/i,
+						urlPattern:
+							/^https:\/\/((rsms\.me|polyfill\.io|unpkg\.com\/boxicons@.*?)\/.*|.*\.github\.io\/.*\.js)/i,
 						handler: "CacheFirst",
 						options: {
-							cacheName: "font-cache",
+							cacheName: "runtime-cache",
 							cacheableResponse: {
 								statuses: [0, 200],
 							},

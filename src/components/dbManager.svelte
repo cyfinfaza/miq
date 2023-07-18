@@ -2,7 +2,6 @@
 	import Modal from "./modal.svelte";
 	import { db, storedConfigs, configs, sheets } from "../lib/db";
 	import Papa from "papaparse";
-	import { onMount } from "svelte";
 	import { ddp } from "../lib/db";
 	import { selectedConfigId } from "../lib/stores";
 
@@ -27,7 +26,7 @@
 		if (editing?.data?.sheetId && editing?.data?.sheetId !== "") {
 			await new Promise((resolve) => {
 				Papa.parse(
-					`https://docs.google.com/spreadsheets/u/0/d/${editing.data.sheetId}/export?format=csv`,
+					`https://docs.google.com/spreadsheets/d/${editing.data.sheetId}/export?format=csv`,
 					{
 						download: true,
 						header: false,
@@ -57,19 +56,12 @@
 	}
 
 	$: update(editing);
-	//   $: editing = {
-	//     mode,
-	//     data: { configs: $configs, sheets: $sheets }[mode]?.find(
-	//       (item) => item.id === editing.data?.id
-	//     ),
-	//   };
-	onMount((_) => {
-		document.addEventListener("keydown", (e) => {
-			if (e.key === "Delete") {
-				deleteCurrent();
-			}
-		});
-	});
+	// $: editing = {
+	// 	mode,
+	// 	data: { configs: $configs, sheets: $sheets }[mode]?.find(
+	// 		(item) => item.id === editing.data?.id
+	// 	),
+	// };
 
 	$: console.log(editing);
 
@@ -110,7 +102,7 @@
 		await db.configs.add({ ...linkedConfig, sheetId: newSheetId });
 		await new Promise((resolve) => {
 			Papa.parse(
-				`https://docs.google.com/spreadsheets/u/0/d/${sheet.sheetId}/export?format=csv`,
+				`https://docs.google.com/spreadsheets/d/${sheet.sheetId}/export?format=csv`,
 				{
 					download: true,
 					header: false,
@@ -142,13 +134,28 @@
 		{/if}
 	</p>
 	<div class="horiz" style="width: 100%; height: 600px">
-		<div class="verti itemList">
+		<div
+			class="verti itemList"
+			on:keydown={(e) => {
+				if (e.key === "Delete") {
+					deleteCurrent();
+				}
+			}}
+			role="listbox"
+			tabindex="0"
+		>
 			{#each { configs: $storedConfigs, sheets: $sheets }[mode] || [] as item, i}
 				<button
 					class="item"
 					class:untitled={item.name === ""}
 					class:selected={editing?.data?.id === item.id}
 					on:click={() => (editing = { mode, data: item })}
+					on:dblclick={() => {
+						if (editing?.mode === "configs") {
+							$selectedConfigId = item.id;
+							closeModal();
+						}
+					}}
 				>
 					{item.name || "Untitled"}
 				</button>

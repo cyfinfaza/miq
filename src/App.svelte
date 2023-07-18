@@ -1,32 +1,32 @@
 <script>
-	import Modal from "./components/modal.svelte";
+	import { onMount, tick } from "svelte";
+	import "boxicons";
+
 	import Scene from "./components/scene.svelte";
+	import DbManager from "./components/dbManager.svelte";
+	import MqttConfig from "./components/mqttConfig.svelte";
+
 	import {
 		showingModal,
-		dataSourceConfig,
-		selectedDataSourceId,
 		selectedConfigId,
 		mqttStatus,
 		mqttConfig,
 	} from "./lib/stores";
 	import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
-
-	import "boxicons";
-
-	import Papa from "papaparse";
-	import { onMount, tick } from "svelte";
-	import DbManager from "./components/dbManager.svelte";
-
-	import { ddp, loadExternalConfig } from "./lib/db";
-
-	import { configs, sheets } from "./lib/db";
-	import osc from "osc-js";
-	import MqttConfig from "./components/mqttConfig.svelte";
+	import {
+		configs,
+		sheets,
+		ddp,
+		loadExternalConfig,
+		updateSheet,
+	} from "./lib/db";
 	import { incomingMessage, mqttClient } from "./lib/mqtt";
 
 	let loading = ["Loading..."];
 
 	let miniMode = false;
+	if (localStorage.getItem("miniMode") == 1) miniMode = true;
+	$: localStorage.setItem("miniMode", miniMode ? 1 : 0);
 
 	/** @type {HTMLDivElement} */
 	let sceneSelector;
@@ -34,18 +34,15 @@
 	let selectedConfig = null;
 	$: selectedConfig =
 		($configs || []).find((config) => config.id === $selectedConfigId) || {};
+
+	/** current sheet contents */
 	let data = [];
 	$: data =
 		selectedConfig?.table ||
 		(selectedConfig.sheetId
-			? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId).table
+			? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId)?.table
 			: []);
 
-	// $: console.log(data);
-	// $: console.log(selectedConfig)
-	// $: console.log($configs)
-	// $: console.log($sheets)
-	// $: console.log($selectedConfigId)
 	$: console.log({
 		data,
 		selectedConfig,
@@ -187,7 +184,7 @@
 	}
 
 	function toggleFullscreen() {
-		if (!document.fullscreenElement) {
+		if (!document.fullscreenElement && !document.webkitFullscreenElement) {
 			if (document.documentElement.requestFullscreen)
 				document.documentElement.requestFullscreen();
 			else document.documentElement.webkitRequestFullscreen();
@@ -270,29 +267,43 @@
 			);
 			loadExternalConfig("linked", "Linked", linkedConfig);
 		} catch (error) {}
-
-		sceneSelector.addEventListener("wheel", (e) => {
-			if (!e.deltaY || e.shiftKey) return;
-			e.preventDefault(); // stop scrolling in another direction
-			e.currentTarget.scrollLeft += (e.deltaY + e.deltaX) * 0.6;
-			// sceneSelector.scrollBy({
-			//   left: (e.deltaY + e.deltaX) * 3,
-			//   behavior: "smooth",
-			// });
-		});
 	});
+
+	let debouncingFire = false;
 </script>
 
 <svelte:head>
 	<title>{selectedConfig?.name || "miq"}</title>
 </svelte:head>
 
+<svelte:window
+	on:keydown={(e) => {
+		if ($showingModal.length) return; // only run on main page
+		document.activeElement.blur();
+		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
+		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1)
+			previewIndex++;
+		else if (!debouncingFire && e.key === " " && previewIndex < scenes.length) {
+			debouncingFire = true;
+			fire(previewIndex);
+			// setTimeout(() => debouncingFire = false, 1000);
+		}
+	}}
+	on:keyup={(e) => {
+		if (e.key === " ") debouncingFire = false;
+	}}
+	on:blur={() => (debouncingFire = false)}
+/>
+
 <main
 	class:showingModal={$showingModal.length > 0}
+	inert={$showingModal.length}
 	class:hideButtons={rxActive && $mqttConfig.rx_preview}
 	class:miniMode
 >
 	<div class="top">
+		<!-- svelte-ignore a11y-no-noninteractive-element-to-interactive-role -->
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<h1
 			style="font-weight: 100; opacity: 0.5;"
 			on:click={() => {
@@ -300,6 +311,7 @@
 					window.location.reload();
 				}
 			}}
+			role="button"
 		>
 			{loading[0] || "miq"}
 		</h1>
@@ -307,8 +319,7 @@
 			<button on:click={toggleFullscreen}>
 				<!-- <span class="material-symbols-outlined"> fullscreen </span> -->
 				<box-icon name="fullscreen" color="currentColor" size="1em" />
-				<br />
-				Fullscreen
+				<br />Fullscreen
 			</button>
 			<button on:click={() => (miniMode = !miniMode)}>
 				<box-icon name="collapse-alt" color="currentColor" size="1em" />
@@ -327,9 +338,6 @@
 							? $mqttConfig.mode + "/" + $mqttConfig.topic
 							: "Disconnected"}</strong
 					>
-					<!-- {#if $oscStatus.address}
-            ({$oscStatus.address})
-          {/if} -->
 				</span></button
 			>
 			<button
@@ -345,15 +353,23 @@
 				>
 					<strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
 					<!-- {#if $oscStatus.address}
-            ({$oscStatus.address})
-          {/if} -->
+						({$oscStatus.address})
+					{/if} -->
 				</span>
 				<span class="minilabel"
 					>tap to {$oscStatus.connected ? "disconnect" : "connect"}</span
 				>
 			</button>
-			<!-- <button>MIDI</button> -->
-			<!-- {#if !rxActive} -->
+			<button
+				on:click={() => updateSheet(selectedConfig.sheetId)}
+				disabled={!selectedConfig.sheetId ||
+					selectedConfig.table ||
+					!data ||
+					rxActive}
+			>
+				<box-icon name="refresh" color="currentColor" size="1em" />
+				<br />Update
+			</button>
 			<button
 				on:click={(_) => ($showingModal = ["dbConfig"])}
 				disabled={rxActive}
@@ -367,7 +383,6 @@
 					{$configs.find((item) => item.id === $selectedConfigId)?.name || "--"}
 				</strong>
 			</button>
-			<!-- {/if} -->
 			<!-- <select
 				style="font-weight: 900;"
 				bind:value={$selectedConfigId}
@@ -380,7 +395,19 @@
 		</div>
 	</div>
 	<div class="middle">
-		<div class="sceneselector" bind:this={sceneSelector}>
+		<div
+			class="sceneselector"
+			bind:this={sceneSelector}
+			on:mousewheel={(e) => {
+				if (!e.deltaY || e.shiftKey) return;
+				e.preventDefault(); // stop scrolling in another direction
+				e.currentTarget.scrollLeft += (e.deltaY + e.deltaX) * 0.6;
+				// sceneSelector.scrollBy({
+				// 	left: (e.deltaY + e.deltaX) * 3,
+				// 	behavior: "smooth",
+				// });
+			}}
+		>
 			<div class="sceneProgress">
 				<strong>{currentIndex + 1}</strong>/{scenes.length}
 				<!-- ({parseInt((previewIndex+1)/scenes.length*100)}%) -->
@@ -465,14 +492,14 @@
 			height: 100%;
 			font-size: 1.1em;
 			font-size: 0.83em;
-			&.connectionButton {
-				min-width: 130px;
-			}
 			font-weight: 300;
 			text-align: left;
 			strong {
 				font-weight: 900;
 			}
+		}
+		.connectionButton {
+			min-width: 130px;
 		}
 	}
 	.buttons {
