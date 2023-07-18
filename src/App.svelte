@@ -4,15 +4,24 @@
 
 	import Scene from "./components/scene.svelte";
 	import DbManager from "./components/dbManager.svelte";
-	import MqttConfig from "./components/mqttConfig.svelte";
+	import Settings from "./components/settings.svelte";
 
 	import {
 		showingModal,
 		selectedConfigId,
 		mqttStatus,
 		mqttConfig,
+		oscConfig,
+		toasts,
+		makeToast,
 	} from "./lib/stores";
-	import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
+	import {
+		onFireOsc,
+		oscStatus,
+		openOSC,
+		closeOSC,
+		getCompleteOscConfig,
+	} from "./lib/osc";
 	import {
 		configs,
 		sheets,
@@ -20,13 +29,22 @@
 		loadExternalConfig,
 		updateSheet,
 	} from "./lib/db";
-	import { incomingMessage, mqttClient } from "./lib/mqtt";
+	import {
+		connect,
+		disconnect,
+		getCompleteMqttConfig,
+		incomingMessage,
+		mqttClient,
+	} from "./lib/mqtt";
+	import Toast from "./components/toast.svelte";
 
 	let loading = ["Loading..."];
 
 	let miniMode = false;
 	if (localStorage.getItem("miniMode") == 1) miniMode = true;
 	$: localStorage.setItem("miniMode", miniMode ? 1 : 0);
+
+	$: document?.body?.classList?.toggle("miniMode", miniMode);
 
 	/** @type {HTMLDivElement} */
 	let sceneSelector;
@@ -303,11 +321,15 @@
 		loading = loading.filter((item) => item !== "Loading...");
 		// check url for linked config
 		try {
+			if (!new URL(window.location).searchParams.has("config")) return;
 			const linkedConfig = JSON.parse(
 				atob(new URL(window.location).searchParams.get("config"))
 			);
 			loadExternalConfig("linked", "Linked", linkedConfig);
-		} catch (error) {}
+		} catch (error) {
+			console.log(error);
+			makeToast("Error loading linked config", error, "error");
+		}
 	});
 
 	let debouncingFire = false;
@@ -340,7 +362,6 @@
 	class:showingModal={$showingModal.length > 0}
 	inert={$showingModal.length}
 	class:hideButtons={rxActive && $mqttConfig.rx_preview}
-	class:miniMode
 >
 	<div class="top">
 		<!-- svelte-ignore a11y-no-noninteractive-element-to-interactive-role -->
@@ -366,21 +387,45 @@
 				<box-icon name="collapse-alt" color="currentColor" size="1em" />
 				<br />Compact
 			</button>
+			<button on:click={(_) => ($showingModal = ["settings"])}>
+				<box-icon name="cog" color="currentColor" size="1em" />
+				<br />Settings
+			</button>
 			<button
-				on:click={(_) => ($showingModal = ["mqttConfig"])}
+				on:click={$mqttStatus.connected ? disconnect() : connect()}
 				class="connectionButton"
+				style="position: relative;"
 			>
-				MQTT: <br />
-				<span
-					style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}
-				>
-					<strong
-						>{$mqttStatus.connected
-							? $mqttConfig.mode + "/" + $mqttConfig.topic
-							: "Disconnected"}</strong
+				MQTT:
+				<br />
+				{#if $mqttConfig.host && $mqttConfig.topic}
+					<span
+						style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}
 					>
-				</span></button
-			>
+						<div class="iconlabel">
+							<box-icon
+								name={$mqttStatus.connected ? "wifi" : "wifi-off"}
+								color="currentColor"
+								size="1em"
+							/>
+							<strong>
+								{getCompleteMqttConfig($mqttConfig)
+									.mode}/{getCompleteMqttConfig($mqttConfig).topic}
+							</strong>
+						</div>
+					</span>
+				{:else}
+					<div class="iconlabel">
+						<box-icon name="wifi-off" color="currentColor" size="1em" />
+						no host
+					</div>
+				{/if}
+				{#if $mqttConfig.host && $mqttConfig.topic}
+					<span class="minilabel"
+						>tap to {$mqttStatus.connected ? "disconnect" : "connect"}</span
+					>
+				{/if}
+			</button>
 			<button
 				on:click={$oscStatus.connected ? closeOSC() : openOSC()}
 				class="connectionButton"
@@ -392,7 +437,18 @@
 				<span
 					style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
 				>
-					<strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
+					<div class="iconlabel">
+						<box-icon
+							name={$oscStatus.connected ? "wifi" : "wifi-off"}
+							color="currentColor"
+							size="1em"
+						/>
+						<strong>
+							{getCompleteOscConfig($oscConfig).host}:{getCompleteOscConfig(
+								$oscConfig
+							).port}
+						</strong>
+					</div>
 					<!-- {#if $oscStatus.address}
 						({$oscStatus.address})
 					{/if} -->
@@ -401,19 +457,20 @@
 					>tap to {$oscStatus.connected ? "disconnect" : "connect"}</span
 				>
 			</button>
-			<button
-				on:click={() => {
-					updateData = {
-						oldPreviewName: scenes[previewIndex]?.name,
-						oldCurrentName: scenes[currentIndex]?.name,
-					};
-					updateSheet(selectedConfig.sheetId);
-				}}
-				disabled={!selectedConfig.sheetId || selectedConfig.table || rxActive}
-			>
-				<box-icon name="refresh" color="currentColor" size="1em" />
-				<br />Update
-			</button>
+			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
+				<button
+					on:click={() => {
+						updateData = {
+							oldPreviewName: scenes[previewIndex]?.name,
+							oldCurrentName: scenes[currentIndex]?.name,
+						};
+						updateSheet(selectedConfig.sheetId);
+					}}
+				>
+					<box-icon name="refresh" color="currentColor" size="1em" />
+					<br />Update
+				</button>
+			{/if}
 			<button
 				on:click={(_) => ($showingModal = ["dbConfig"])}
 				disabled={rxActive}
@@ -497,7 +554,10 @@
 </main>
 
 <DbManager />
-<MqttConfig />
+<Settings />
+{#each $toasts as toastMessage}
+	<Toast {toastMessage} />
+{/each}
 
 <style lang="scss">
 	main {
@@ -522,15 +582,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 3em;
+		height: var(--top-height);
 		gap: var(--spacing);
-		.miniMode & {
-			height: 2.5em;
-			// button,
-			// select {
-			// 	font-size: 1em;
-			// }
-		}
 		button,
 		select {
 			height: 100%;
@@ -555,7 +608,7 @@
 		> * {
 			flex: 1;
 			font-size: 1.2em;
-			.miniMode & {
+			:global(.miniMode) & {
 				font-size: 1em;
 			}
 			font-weight: bold;
@@ -563,7 +616,7 @@
 		.hideButtons & {
 			display: none;
 		}
-		.miniMode & {
+		:global(.miniMode) & {
 			height: 3em;
 		}
 	}

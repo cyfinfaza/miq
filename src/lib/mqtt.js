@@ -1,18 +1,30 @@
 import Paho from "paho-mqtt";
 import { get, writable } from "svelte/store";
-import { mqttConfig, mqttStatus } from "./stores";
+import { makeToast, mqttConfig, mqttStatus } from "./stores";
 
 export let mqttClient;
 
 export let incomingMessage = writable(null);
 
+export function getCompleteMqttConfig(config) {
+	return {
+		...config,
+		port: config.port || 443,
+		basepath: config.basepath || "/ws",
+		useAuth: config.useAuth ?? false,
+		username: config.username,
+		password: config.password,
+	};
+}
+
 export function connect() {
-	const config = get(mqttConfig);
+	const config = getCompleteMqttConfig(get(mqttConfig));
 	if (!config || !config.host || !config.topic) {
+		makeToast("Bad MQTT Config", "Provide at least a host and topic", "info");
 		return;
 	}
 	const clientID = "miq-" + Math.random().toString(16);
-	mqttClient = new Paho.Client(config.host, config.port || 443, config.basepath || "/ws", clientID);
+	mqttClient = new Paho.Client(config.host, config.port, config.basepath, clientID);
 	let willMessage = new Paho.Message(new ArrayBuffer(0));
 	willMessage.destinationName = "miq/" + config.topic + "/config";
 	/** @type {Paho.ConnectionOptions} */
@@ -27,7 +39,7 @@ export function connect() {
 		// mqttVersion: 3,
 		// uris: ["wss://mq03.cy2.me/mqtt"],
 	};
-	if (config.useAuth ?? false) {
+	if (config.useAuth) {
 		connectionOptions.userName = config.username;
 		connectionOptions.password = config.password;
 	} else {
@@ -38,6 +50,7 @@ export function connect() {
 	mqttClient.connect(connectionOptions);
 	function onFailure(e) {
 		console.error("MQTT: Connection failed", e);
+		makeToast("MQTT connection failed", e.errorMessage, "error");
 		mqttStatus.update((_) => ({ connected: false, address: null, mode: "disabled" }));
 		// setTimeout(() => {
 		// 	client.connect(connectionOptions);
