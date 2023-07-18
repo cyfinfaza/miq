@@ -25,23 +25,20 @@
 	async function downloadCurrent() {
 		if (editing?.data?.sheetId && editing?.data?.sheetId !== "") {
 			await new Promise((resolve) => {
-				Papa.parse(
-					`https://docs.google.com/spreadsheets/d/${editing.data.sheetId}/export?format=csv`,
-					{
-						download: true,
-						header: false,
-						complete: async function (results) {
-							console.log(results);
-							let data = results.data;
-							editing = {
-								...editing,
-								data: { ...editing.data, table: data, lastFetched: new Date() },
-							};
-							console.log(editing);
-							resolve();
-						},
-					}
-				);
+				Papa.parse(`https://docs.google.com/spreadsheets/d/${editing.data.sheetId}/export?format=csv`, {
+					download: true,
+					header: false,
+					complete: async function (results) {
+						console.log(results);
+						let data = results.data;
+						editing = {
+							...editing,
+							data: { ...editing.data, table: data, lastFetched: new Date() },
+						};
+						console.log(editing);
+						resolve();
+					},
+				});
 			});
 		}
 	}
@@ -49,9 +46,7 @@
 	async function deleteCurrent() {
 		if (editing?.data?.id) {
 			await db[editing.mode].delete(editing.data.id);
-			editing =
-				{ mode, data: { configs: $storedConfigs, sheets: $sheets }[mode][1] } ||
-				{};
+			editing = { mode, data: { configs: $storedConfigs, sheets: $sheets }[mode][1] } || {};
 		}
 	}
 
@@ -72,9 +67,7 @@
 		// export config as link with base64 encoded json containing google sheet Id
 		try {
 			let config = $storedConfigs.find((item) => item.id === editing.data.id);
-			const sheetId = $sheets.find(
-				(item) => item.id === config.sheetId
-			)?.sheetId;
+			const sheetId = $sheets.find((item) => item.id === config.sheetId)?.sheetId;
 			config = { ...config, sheetId };
 			const link = new URL(window.location.href);
 			link.searchParams.set("config", btoa(JSON.stringify(config)));
@@ -101,22 +94,16 @@
 		// add config to configs
 		await db.configs.add({ ...linkedConfig, sheetId: newSheetId });
 		await new Promise((resolve) => {
-			Papa.parse(
-				`https://docs.google.com/spreadsheets/d/${sheet.sheetId}/export?format=csv`,
-				{
-					download: true,
-					header: false,
-					complete: async function (results) {
-						console.log(results);
-						let data = results.data;
-						db.sheets.update(
-							{ id: newSheetId },
-							{ table: data, lastFetched: new Date() }
-						);
-						resolve();
-					},
-				}
-			);
+			Papa.parse(`https://docs.google.com/spreadsheets/d/${sheet.sheetId}/export?format=csv`, {
+				download: true,
+				header: false,
+				complete: async function (results) {
+					console.log(results);
+					let data = results.data;
+					db.sheets.update({ id: newSheetId }, { table: data, lastFetched: new Date() });
+					resolve();
+				},
+			});
 		});
 	}
 </script>
@@ -177,11 +164,7 @@
 				</p>
 				{#if editing?.mode === "sheets"}
 					<p>
-						Google Sheets ID: <input
-							type="text"
-							placeholder="44 characters"
-							bind:value={editing.data.sheetId}
-						/>
+						Google Sheets ID: <input type="text" placeholder="44 characters" bind:value={editing.data.sheetId} />
 					</p>
 					<p>
 						Last fetched: {editing.data.lastFetched || "Never"}
@@ -205,53 +188,30 @@
 						Google Sheet:
 						<select bind:value={editing.data.sheetId}>
 							{#each $sheets as sheet}
-								<option value={sheet.id} class:untitled={sheet.name === ""}
-									>{sheet.name || "Untitled"}</option
-								>
+								<option value={sheet.id} class:untitled={sheet.name === ""}>{sheet.name || "Untitled"}</option>
 							{/each}
 						</select>
 					</p>
 					<p>
-						Notes Row: <input
-							type="number"
-							bind:value={editing.data.notesRow}
-						/>
+						Notes Row: <input type="number" bind:value={editing.data.notesRow} />
 					</p>
 					<p>
-						Names Row: <input
-							type="number"
-							bind:value={editing.data.namesRow}
-						/>
+						Names Row: <input type="number" bind:value={editing.data.namesRow} />
 					</p>
 					<p>
-						Mics Start Row: <input
-							type="number"
-							bind:value={editing.data.micsStartRow}
-						/>
+						Mics Start Row: <input type="number" bind:value={editing.data.micsStartRow} />
 					</p>
 					<p>
-						Flags Row: <input
-							type="number"
-							bind:value={editing.data.flagsRow}
-						/>
+						Flags Row: <input type="number" bind:value={editing.data.flagsRow} />
 					</p>
 					<p>
-						Mic Numbers Column: <input
-							type="number"
-							bind:value={editing.data.micNumsCol}
-						/>
+						Mic Numbers Column: <input type="number" bind:value={editing.data.micNumsCol} />
 					</p>
 					<p>
-						Actor Names Column: <input
-							type="number"
-							bind:value={editing.data.actorNamesCol}
-						/>
+						Actor Names Column: <input type="number" bind:value={editing.data.actorNamesCol} />
 					</p>
 					<p>
-						Scenes Start Column: <input
-							type="number"
-							bind:value={editing.data.scenesStartCol}
-						/>
+						Scenes Start Column: <input type="number" bind:value={editing.data.scenesStartCol} />
 					</p>
 					<!-- <p>
 						<button class="horiz">
@@ -261,9 +221,7 @@
 					<p>
 						<details>
 							<summary>Export as link</summary>
-							<a href={exportedLink} style="word-wrap: break-word;"
-								>{exportedLink}</a
-							>
+							<a href={exportedLink} style="word-wrap: break-word;">{exportedLink}</a>
 						</details>
 					</p>
 					<p style="margin-top: 24px;">

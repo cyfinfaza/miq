@@ -4,23 +4,13 @@
 
 	import Scene from "./components/scene.svelte";
 	import DbManager from "./components/dbManager.svelte";
-	import MqttConfig from "./components/mqttConfig.svelte";
+	import Settings from "./components/settings.svelte";
 
-	import {
-		showingModal,
-		selectedConfigId,
-		mqttStatus,
-		mqttConfig,
-	} from "./lib/stores";
-	import { onFireOsc, oscStatus, openOSC, closeOSC } from "./lib/osc";
-	import {
-		configs,
-		sheets,
-		ddp,
-		loadExternalConfig,
-		updateSheet,
-	} from "./lib/db";
-	import { incomingMessage, mqttClient } from "./lib/mqtt";
+	import { showingModal, selectedConfigId, mqttStatus, mqttConfig, oscConfig, toasts, makeToast } from "./lib/stores";
+	import { onFireOsc, oscStatus, openOSC, closeOSC, getCompleteOscConfig } from "./lib/osc";
+	import { configs, sheets, ddp, loadExternalConfig, updateSheet } from "./lib/db";
+	import { connect, disconnect, getCompleteMqttConfig, incomingMessage, mqttClient } from "./lib/mqtt";
+	import Toast from "./components/toast.svelte";
 
 	let loading = ["Loading..."];
 
@@ -28,20 +18,19 @@
 	if (localStorage.getItem("miniMode") == 1) miniMode = true;
 	$: localStorage.setItem("miniMode", miniMode ? 1 : 0);
 
+	$: document.body.classList.toggle("miniMode", miniMode);
+
 	/** @type {HTMLDivElement} */
 	let sceneSelector;
 
 	let selectedConfig = null;
-	$: selectedConfig =
-		($configs || []).find((config) => config.id === $selectedConfigId) || {};
+	$: selectedConfig = ($configs || []).find((config) => config.id === $selectedConfigId) || {};
 
 	/** current sheet contents */
 	let data = [];
 	$: data =
 		selectedConfig?.table ||
-		(selectedConfig.sheetId
-			? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId)?.table
-			: []);
+		(selectedConfig.sheetId ? $sheets.find((sheet) => sheet.id === selectedConfig.sheetId)?.table : []);
 
 	$: console.log({
 		data,
@@ -63,12 +52,8 @@
 			flagsRow: parseInt(selectedConfig.flagsRow ?? ddp.flagsRow),
 			micsStartRow: parseInt(selectedConfig.micsStartRow ?? ddp.micsStartRow),
 			micNumsCol: parseInt(selectedConfig.micNumsCol ?? ddp.micNumsCol),
-			actorNamesCol: parseInt(
-				selectedConfig.actorNamesCol ?? ddp.actorNamesCol
-			),
-			scenesStartCol: parseInt(
-				selectedConfig.scenesStartCol ?? ddp.scenesStartCol
-			),
+			actorNamesCol: parseInt(selectedConfig.actorNamesCol ?? ddp.actorNamesCol),
+			scenesStartCol: parseInt(selectedConfig.scenesStartCol ?? ddp.scenesStartCol),
 		};
 		if (data && data.length > 0 && data[0]?.length > 0) {
 			let newScenes = [];
@@ -97,9 +82,7 @@
 					mics[micNum] = {
 						actor: pair.actor,
 						character: data[j][i],
-						active:
-							data[j][i].trim() !== "" &&
-							data[j][i].trim().slice(0, 2) !== "//",
+						active: data[j][i].trim() !== "" && data[j][i].trim().slice(0, 2) !== "//",
 					};
 				});
 				newScenes.push({
@@ -142,9 +125,7 @@
 			// try to restore from history state, first time only
 			if (historyState !== null) {
 				tick().then(() => {
-					const index = scenes.findIndex(
-						(scene) => scene.name === historyState
-					);
+					const index = scenes.findIndex((scene) => scene.name === historyState);
 					if (index !== -1) previewIndex = index;
 					historyState = null;
 				});
@@ -185,8 +166,7 @@
 
 	function toggleFullscreen() {
 		if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-			if (document.documentElement.requestFullscreen)
-				document.documentElement.requestFullscreen();
+			if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
 			else document.documentElement.webkitRequestFullscreen();
 		} else if (document.exitFullscreen) {
 			if (document.fullscreenElement) document.exitFullscreen();
@@ -196,16 +176,9 @@
 
 	$: {
 		// console.log(selectedConfig, $mqttConfig.mode, $mqttStatus.connected)
-		if (
-			selectedConfig &&
-			$mqttStatus.connected &&
-			$mqttConfig.mode == "tx" &&
-			$mqttConfig.topic
-		) {
+		if (selectedConfig && $mqttStatus.connected && $mqttConfig.mode == "tx" && $mqttConfig.topic) {
 			let config = $configs?.find((item) => item.id === selectedConfig.id);
-			const sheetId = $sheets?.find(
-				(item) => item.id === config.sheetId
-			)?.sheetId;
+			const sheetId = $sheets?.find((item) => item.id === config.sheetId)?.sheetId;
 			if (sheetId) config = { ...config, sheetId };
 			if (config.table) config = { ...config, table: undefined };
 			console.log("sending config", config);
@@ -220,12 +193,7 @@
 	}
 
 	$: {
-		if (
-			selectedConfig &&
-			$mqttStatus.connected &&
-			$mqttConfig.mode == "tx" &&
-			$mqttConfig.topic
-		) {
+		if (selectedConfig && $mqttStatus.connected && $mqttConfig.mode == "tx" && $mqttConfig.topic) {
 			// send current and preview index
 			mqttClient.publish(
 				"miq/" + $mqttConfig.topic,
@@ -262,11 +230,13 @@
 		loading = loading.filter((item) => item !== "Loading...");
 		// check url for linked config
 		try {
-			const linkedConfig = JSON.parse(
-				atob(new URL(window.location).searchParams.get("config"))
-			);
+			if (!new URL(window.location).searchParams.has("config")) return;
+			const linkedConfig = JSON.parse(atob(new URL(window.location).searchParams.get("config")));
 			loadExternalConfig("linked", "Linked", linkedConfig);
-		} catch (error) {}
+		} catch (error) {
+			console.log(error);
+			makeToast("Error loading linked config", error, "error");
+		}
 	});
 
 	let debouncingFire = false;
@@ -281,8 +251,7 @@
 		if ($showingModal.length) return; // only run on main page
 		document.activeElement.blur();
 		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
-		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1)
-			previewIndex++;
+		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
 		else if (!debouncingFire && e.key === " " && previewIndex < scenes.length) {
 			debouncingFire = true;
 			fire(previewIndex);
@@ -299,7 +268,6 @@
 	class:showingModal={$showingModal.length > 0}
 	inert={$showingModal.length}
 	class:hideButtons={rxActive && $mqttConfig.rx_preview}
-	class:miniMode
 >
 	<div class="top">
 		<!-- svelte-ignore a11y-no-noninteractive-element-to-interactive-role -->
@@ -325,21 +293,36 @@
 				<box-icon name="collapse-alt" color="currentColor" size="1em" />
 				<br />Compact
 			</button>
+			<button on:click={(_) => ($showingModal = ["settings"])}>
+				<box-icon name="cog" color="currentColor" size="1em" />
+				<br />Settings
+			</button>
 			<button
-				on:click={(_) => ($showingModal = ["mqttConfig"])}
+				on:click={$mqttStatus.connected ? disconnect() : connect()}
 				class="connectionButton"
+				style="position: relative;"
 			>
-				MQTT: <br />
-				<span
-					style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}
-				>
-					<strong
-						>{$mqttStatus.connected
-							? $mqttConfig.mode + "/" + $mqttConfig.topic
-							: "Disconnected"}</strong
-					>
-				</span></button
-			>
+				MQTT:
+				<br />
+				{#if $mqttConfig.host && $mqttConfig.topic}
+					<span style:color={$mqttStatus.connected ? "var(--green)" : "var(--red)"}>
+						<div class="iconlabel">
+							<box-icon name={$mqttStatus.connected ? "wifi" : "wifi-off"} color="currentColor" size="1em" />
+							<strong>
+								{getCompleteMqttConfig($mqttConfig).mode}/{getCompleteMqttConfig($mqttConfig).topic}
+							</strong>
+						</div>
+					</span>
+				{:else}
+					<div class="iconlabel">
+						<box-icon name="wifi-off" color="currentColor" size="1em" />
+						no host
+					</div>
+				{/if}
+				{#if $mqttConfig.host && $mqttConfig.topic}
+					<span class="minilabel">tap to {$mqttStatus.connected ? "disconnect" : "connect"}</span>
+				{/if}
+			</button>
 			<button
 				on:click={$oscStatus.connected ? closeOSC() : openOSC()}
 				class="connectionButton"
@@ -348,28 +331,28 @@
 			>
 				OSC/WS:
 				<br />
-				<span
-					style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}
-				>
-					<strong>{$oscStatus.connected ? "Connected" : "Disconnected"}</strong>
+				<span style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}>
+					<div class="iconlabel">
+						<box-icon name={$oscStatus.connected ? "wifi" : "wifi-off"} color="currentColor" size="1em" />
+						<strong>
+							{getCompleteOscConfig($oscConfig).host}:{getCompleteOscConfig($oscConfig).port}
+						</strong>
+					</div>
 					<!-- {#if $oscStatus.address}
 						({$oscStatus.address})
 					{/if} -->
 				</span>
-				<span class="minilabel"
-					>tap to {$oscStatus.connected ? "disconnect" : "connect"}</span
+				<span class="minilabel">tap to {$oscStatus.connected ? "disconnect" : "connect"}</span>
+			</button>
+			{#if !(!selectedConfig.sheetId || selectedConfig.table || !data || rxActive)}
+				<button
+					on:click={() => updateSheet(selectedConfig.sheetId)}
+					disabled={!selectedConfig.sheetId || selectedConfig.table || !data || rxActive}
 				>
-			</button>
-			<button
-				on:click={() => updateSheet(selectedConfig.sheetId)}
-				disabled={!selectedConfig.sheetId ||
-					selectedConfig.table ||
-					!data ||
-					rxActive}
-			>
-				<box-icon name="refresh" color="currentColor" size="1em" />
-				<br />Update
-			</button>
+					<box-icon name="refresh" color="currentColor" size="1em" />
+					<br />Update
+				</button>
+			{/if}
 			<button
 				on:click={(_) => ($showingModal = ["dbConfig"])}
 				disabled={rxActive}
@@ -429,31 +412,25 @@
 	</div>
 	<div class="buttons">
 		{#if !(rxActive && $mqttConfig.rx_preview)}
-			<button disabled={previewIndex < 1} on:click={(_) => previewIndex--}
-				>Preview backwards</button
-			>
-			<button
-				disabled={previewIndex > scenes.length - 1}
-				on:click={(_) => previewIndex++}>Preview forwards</button
-			>
-			<button
-				disabled={previewIndex === currentIndex + 1}
-				on:click={(_) => (previewIndex = currentIndex + 1)}
+			<button disabled={previewIndex < 1} on:click={(_) => previewIndex--}>Preview backwards</button>
+			<button disabled={previewIndex > scenes.length - 1} on:click={(_) => previewIndex++}>Preview forwards</button>
+			<button disabled={previewIndex === currentIndex + 1} on:click={(_) => (previewIndex = currentIndex + 1)}
 				>Preview reset</button
 			>
 		{/if}
 		{#if !rxActive}
-			<button
-				disabled={previewIndex > scenes.length - 1}
-				class="red"
-				on:click={(_) => fire(previewIndex)}>Fire next</button
+			<button disabled={previewIndex > scenes.length - 1} class="red" on:click={(_) => fire(previewIndex)}
+				>Fire next</button
 			>
 		{/if}
 	</div>
 </main>
 
 <DbManager />
-<MqttConfig />
+<Settings />
+{#each $toasts as toastMessage}
+	<Toast {toastMessage} />
+{/each}
 
 <style lang="scss">
 	main {
@@ -478,15 +455,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 3em;
+		height: var(--top-height);
 		gap: var(--spacing);
-		.miniMode & {
-			height: 2.5em;
-			// button,
-			// select {
-			// 	font-size: 1em;
-			// }
-		}
 		button,
 		select {
 			height: 100%;
@@ -511,7 +481,7 @@
 		> * {
 			flex: 1;
 			font-size: 1.2em;
-			.miniMode & {
+			:global(.miniMode) & {
 				font-size: 1em;
 			}
 			font-weight: bold;
@@ -519,7 +489,7 @@
 		.hideButtons & {
 			display: none;
 		}
-		.miniMode & {
+		:global(.miniMode) & {
 			height: 3em;
 		}
 	}
@@ -557,12 +527,7 @@
 		.sceneProgress {
 			padding: 0 12px;
 			padding-right: 24px;
-			background: linear-gradient(
-				to left,
-				transparent 0%,
-				var(--bg) 12px,
-				var(--bg) 100%
-			);
+			background: linear-gradient(to left, transparent 0%, var(--bg) 12px, var(--bg) 100%);
 			height: 100%;
 			display: flex;
 			align-items: center;
