@@ -14,7 +14,7 @@
 		error: { icon: "error-circle", color: "var(--red)" },
 	}[type || "info"];
 
-	export let timeout = 10000;
+	export let timeout = 8000;
 
 	onMount(() => {
 		setTimeout(() => {
@@ -24,6 +24,7 @@
 </script>
 
 <div
+	role="alert"
 	class="horiz toast"
 	in:fly={{ y: -100, opacity: 1, duration: 240 }}
 	out:fly={{ y: -100, opacity: 0, duration: 240 }}
@@ -37,10 +38,7 @@
 
 <style>
 	.toast {
-		position: fixed;
 		background: #222;
-		top: 0;
-		left: 0;
 		margin: var(--spacing);
 		height: var(--top-height);
 		padding: var(--spacing);

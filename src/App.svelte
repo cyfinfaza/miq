@@ -473,9 +473,12 @@
 
 <DbManager />
 <Settings />
-{#each $toasts as toastMessage}
-	<Toast {toastMessage} />
-{/each}
+
+<div class="toasts">
+	{#each $toasts as toastMessage}
+		<Toast {toastMessage} />
+	{/each}
+</div>
 
 <style lang="scss">
 	main {
@@ -589,5 +592,10 @@
 		justify-content: space-between;
 		gap: var(--spacing);
 		overflow: auto;
+	}
+	.toasts {
+		position: fixed;
+		top: 0;
+		left: 0;
 	}
 </style>

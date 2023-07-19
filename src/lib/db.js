@@ -78,17 +78,18 @@ export async function loadExternalConfig(id, source, config) {
 export async function updateSheet(sheetDbId) {
 	let editing = await db.sheets.get({ id: sheetDbId });
 	if (editing?.sheetId)
-		await new Promise((resolve) => {
+		return await new Promise((resolve) => {
 			Papa.parse(`https://docs.google.com/spreadsheets/d/${editing.sheetId}/export?format=csv`, {
 				download: true,
 				header: false,
 				complete: async function (results) {
-					let data = results.data;
+					let data = results.data,
+						record = { ...editing, table: data, lastFetched: new Date() };
 					if (data) {
-						await db.sheets.update({ id: sheetDbId }, { ...editing, table: data, lastFetched: new Date() });
+						await db.sheets.update({ id: sheetDbId }, record);
 						makeToast("Sheet updated", `"${editing?.name}"`, "info");
+						resolve(record);
 					}
-					resolve();
 				},
 			});
 		});

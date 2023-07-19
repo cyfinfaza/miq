@@ -1,12 +1,13 @@
 <script>
 	import Modal from "./modal.svelte";
-	import { db, storedConfigs, configs, sheets } from "../lib/db";
+	import { db, storedConfigs, configs, sheets, updateSheet } from "../lib/db";
 	import Papa from "papaparse";
 	import { ddp } from "../lib/db";
 	import { selectedConfigId } from "../lib/stores";
 
 	import "boxicons";
 
+	/** @type {"configs"|"sheets"} */
 	let mode = "configs";
 	let editing = {};
 
@@ -22,31 +23,11 @@
 		}
 	}
 
-	async function downloadCurrent() {
-		if (editing?.data?.sheetId && editing?.data?.sheetId !== "") {
-			await new Promise((resolve) => {
-				Papa.parse(`https://docs.google.com/spreadsheets/d/${editing.data.sheetId}/export?format=csv`, {
-					download: true,
-					header: false,
-					complete: async function (results) {
-						console.log(results);
-						let data = results.data;
-						editing = {
-							...editing,
-							data: { ...editing.data, table: data, lastFetched: new Date() },
-						};
-						console.log(editing);
-						resolve();
-					},
-				});
-			});
-		}
-	}
-
 	async function deleteCurrent() {
 		if (editing?.data?.id) {
 			await db[editing.mode].delete(editing.data.id);
-			editing = { mode, data: { configs: $storedConfigs, sheets: $sheets }[mode][1] } || {};
+			// editing = { mode, data: { configs: $storedConfigs, sheets: $sheets }[mode][1] } || {};
+			editing = {};
 		}
 	}
 
@@ -67,7 +48,7 @@
 		// export config as link with base64 encoded json containing google sheet Id
 		try {
 			let config = $storedConfigs.find((item) => item.id === editing.data.id);
-			const sheetId = $sheets.find((item) => item.id === config.sheetId)?.sheetId;
+			const sheetId = $sheets.find((item) => item.id === config?.sheetId)?.sheetId;
 			config = { ...config, sheetId };
 			const link = new URL(window.location.href);
 			link.searchParams.set("config", btoa(JSON.stringify(config)));
@@ -109,24 +90,22 @@
 </script>
 
 <Modal modalName="dbConfig" let:closeModal>
-	<h1>Database Config</h1>
-	<p>
-		<select bind:value={mode}>
-			<option value="sheets">Downloaded Sheets</option>
-			<option value="configs">Configurations</option>
-		</select>
+	<h1>Database Manager</h1>
+	<div>
+		<div class="tabber" role="tablist">
+			<button role="tab" aria-selected={mode === "configs"} on:click={() => (mode = "configs")}>Configurations</button>
+			<button role="tab" aria-selected={mode === "sheets"} on:click={() => (mode = "sheets")}>Downloaded Sheets</button>
+		</div>
 		<button on:click={addNew}>Add New</button>
 		{#if $configs.find((item) => item.id === "linked")}
 			<button on:click={importLinkedConfig}>Import Linked Config</button>
 		{/if}
-	</p>
+	</div>
 	<div class="horiz" style="width: 100%; height: 600px">
 		<div
 			class="verti itemList"
 			on:keydown={(e) => {
-				if (e.key === "Delete") {
-					deleteCurrent();
-				}
+				if (e.key === "Delete") deleteCurrent();
 			}}
 			role="listbox"
 			tabindex="0"
@@ -168,7 +147,12 @@
 					</p>
 					<p>
 						Last fetched: {editing.data.lastFetched || "Never"}
-						<button on:click={downloadCurrent}>Fetch Now</button>
+						<button
+							on:click={async () => {
+								let record = await updateSheet(editing.data.id);
+								editing = { ...editing, data: record };
+							}}>Fetch Now</button
+						>
 					</p>
 					{#if editing.data.table}
 						<div style="width: 100%; display: flex; overflow: auto;">
@@ -213,21 +197,16 @@
 					<p>
 						Scenes Start Column: <input type="number" bind:value={editing.data.scenesStartCol} />
 					</p>
-					<!-- <p>
-						<button class="horiz">
-							<box-icon name="window-open" color="currentColor" /> Open Config
-						</button>
-					</p> -->
 					<p>
 						<details>
 							<summary>Export as link</summary>
 							<a href={exportedLink} style="word-wrap: break-word;">{exportedLink}</a>
 						</details>
 					</p>
-					<p style="margin-top: 24px;">
-						<button class="red" on:click={deleteCurrent}>Delete Entry</button>
-					</p>
 				{/if}
+				<p style="margin-top: 24px;">
+					<button class="red" on:click={deleteCurrent}>Delete Entry</button>
+				</p>
 			{/if}
 		</div>
 	</div>

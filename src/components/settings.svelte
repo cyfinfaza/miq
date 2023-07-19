@@ -16,19 +16,11 @@
 			<div class="verti" disabled={$mqttStatus.connected || null}>
 				<p>Host: <input type="text" bind:value={$mqttConfig.host} /></p>
 				<p>Port: <input type="number" bind:value={$mqttConfig.port} /></p>
-				<p>
-					Basepath: <input type="text" bind:value={$mqttConfig.basepath} />
-				</p>
-				<p>
-					Use Authentication? <input type="checkbox" bind:checked={$mqttConfig.useAuth} />
-				</p>
+				<p>Basepath: <input type="text" bind:value={$mqttConfig.basepath} /></p>
+				<p>Use Authentication? <input type="checkbox" bind:checked={$mqttConfig.useAuth} /></p>
 				{#if $mqttConfig.useAuth}
-					<p>
-						Username: <input type="text" bind:value={$mqttConfig.username} />
-					</p>
-					<p>
-						Password: <input type="password" bind:value={$mqttConfig.password} />
-					</p>
+					<p>Username: <input type="text" bind:value={$mqttConfig.username} /></p>
+					<p>Password: <input type="password" bind:value={$mqttConfig.password} /></p>
 				{/if}
 				<p>Topic: <input type="text" bind:value={$mqttConfig.topic} /></p>
 				<p>
@@ -39,8 +31,8 @@
 				</p>
 				{#if $mqttConfig.mode === "rx"}
 					<p>
-						Follow: <input type="checkbox" bind:checked={$mqttConfig.rx_preview} />
-						Preview
+						Follow:
+						<input type="checkbox" bind:checked={$mqttConfig.rx_preview} /> Preview
 						<input type="checkbox" bind:checked={$mqttConfig.rx_live} /> Live
 					</p>
 				{/if}
