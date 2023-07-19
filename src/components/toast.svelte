@@ -16,25 +16,36 @@
 
 	export let timeout = 8000;
 
+	const close = () => toasts.update((t) => t.filter((t) => t.id !== id));
+
 	onMount(() => {
-		setTimeout(() => {
-			toasts.update((t) => t.filter((t) => t.id !== id));
-		}, timeout);
+		setTimeout(close, timeout);
 	});
 </script>
 
-<div
-	role="alert"
-	class="horiz toast"
-	in:fly={{ y: -100, opacity: 1, duration: 240 }}
-	out:fly={{ y: -100, opacity: 0, duration: 240 }}
->
-	<box-icon style="flex-shrink: 0" name={style.icon} color={style.color} />
-	<p style="text-overflow: ellipsis; max-height: 100%; overflow: hidden;">
-		<strong>{title || "Message"}</strong><br />
-		<span style="white-space: nowrap; text-overflow: ellipses">{message}</span>
-	</p>
-</div>
+{#if $toasts.some((t) => t.id === id)}
+	<div
+		role="alert"
+		class="horiz toast"
+		in:fly={{ y: -100, opacity: 1, duration: 240 }}
+		out:fly={{ y: -100, opacity: 0, duration: 240 }}
+	>
+		<box-icon style="flex-shrink: 0" name={style.icon} color={style.color} />
+		<p style="text-overflow: ellipsis; max-height: 100%; overflow: hidden;">
+			<strong>{title || "Message"}</strong><br />
+			<span style="white-space: nowrap; text-overflow: ellipses">{message}</span>
+		</p>
+		<box-icon
+			name="x"
+			color="currentColor"
+			role="button"
+			tabindex="0"
+			style="cursor: pointer; margin-left: auto;"
+			on:click={close}
+			on:keydown={close}
+		/>
+	</div>
+{/if}
 
 <style>
 	.toast {
