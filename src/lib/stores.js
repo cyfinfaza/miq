@@ -2,7 +2,7 @@ import { writable } from "svelte/store";
 
 export const showingModal = writable([]);
 
-window.addEventListener("keydown", (e) => {
+window?.addEventListener("keydown", (e) => {
 	if (e.key === "Escape") {
 		showingModal.set([]);
 	}
@@ -32,11 +32,12 @@ export const oscConfig = writable(JSON.parse(localStorage.getItem("oscConfig")) 
 oscConfig.subscribe((value) => localStorage.setItem("oscConfig", JSON.stringify(value)));
 
 export const toasts = writable([]);
+/** @param {"info"|"warn"|"error"} type */
 export function makeToast(title, message, type = "info") {
 	toasts.update((toasts) => {
-		toasts.push({ title, message, type, id: Math.random().toString(16).slice(5) });
+		toasts.push({ title, message, type, id: Date.now() });
 		return toasts;
 	});
 }
 
-window.makeToast = makeToast;
+if (window) window.makeToast = makeToast;

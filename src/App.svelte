@@ -5,12 +5,12 @@
 	import Scene from "./components/scene.svelte";
 	import DbManager from "./components/dbManager.svelte";
 	import Settings from "./components/settings.svelte";
+	import Toast from "./components/toast.svelte";
 
 	import { showingModal, selectedConfigId, mqttStatus, mqttConfig, oscConfig, toasts, makeToast } from "./lib/stores";
 	import { onFireOsc, oscStatus, openOSC, closeOSC, getCompleteOscConfig } from "./lib/osc";
 	import { configs, sheets, ddp, loadExternalConfig, updateSheet } from "./lib/db";
 	import { connect, disconnect, getCompleteMqttConfig, incomingMessage, mqttClient } from "./lib/mqtt";
-	import Toast from "./components/toast.svelte";
 
 	let loading = ["Loading..."];
 
@@ -18,7 +18,7 @@
 	if (localStorage.getItem("miniMode") == 1) miniMode = true;
 	$: localStorage.setItem("miniMode", miniMode ? 1 : 0);
 
-	$: document.body.classList.toggle("miniMode", miniMode);
+	$: document?.body?.classList?.toggle("miniMode", miniMode);
 
 	/** @type {HTMLDivElement} */
 	let sceneSelector;
@@ -45,7 +45,9 @@
 	$: if (scenes.length && scenes[previewIndex]?.name) {
 		history.replaceState(scenes[previewIndex].name, "");
 	}
-	$: {
+
+	function regenerateScenes(selectedConfig, data) {
+		console.log("regenerating scenes");
 		const config = {
 			notesRow: parseInt(selectedConfig.notesRow ?? ddp.notesRow),
 			namesRow: parseInt(selectedConfig.namesRow ?? ddp.namesRow),
@@ -130,10 +132,48 @@
 					historyState = null;
 				});
 			}
+
+			// try to keep same position when updating sheet
+			if (updateData !== null) {
+				let newNames = scenes.map((scene) => scene.name);
+
+				/** @param {number} startIndex @param {string} targetString @param {undefined|number} fallback @returns {number} index */
+				function findNewIndex(startIndex, targetString, fallback = undefined) {
+					if (startIndex < 0) return -1;
+					let right = startIndex,
+						left = startIndex;
+					while (left >= 0 || right < newNames.length) {
+						if (right < newNames.length && newNames[right] === targetString) return right;
+						if (left >= 0 && newNames[left] === targetString) return left;
+						right++;
+						left--;
+					}
+					return fallback || startIndex;
+				}
+
+				currentIndex = findNewIndex(
+					currentIndex, // old
+					updateData.oldCurrentName,
+					-1 // don't say we have some random thing fired
+				);
+				previewIndex = findNewIndex(
+					previewIndex, // old
+					updateData.oldPreviewName
+				);
+
+				updateData = null;
+			}
 		} else {
 			scenes = [];
 		}
 	}
+
+	// only want to regenerate when these specific parameters change
+	$: regenerateScenes(selectedConfig, data);
+
+	// when we refresh the data, we want to keep the same scene selected
+	// this will temporarily hold some old scene data until the new scenes list is regenerated as it may take a while
+	let updateData = null;
 
 	let previewIndex = 0;
 	let currentIndex = -1;
@@ -344,10 +384,15 @@
 				</span>
 				<span class="minilabel">tap to {$oscStatus.connected ? "disconnect" : "connect"}</span>
 			</button>
-			{#if !(!selectedConfig.sheetId || selectedConfig.table || !data || rxActive)}
+			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
 				<button
-					on:click={() => updateSheet(selectedConfig.sheetId)}
-					disabled={!selectedConfig.sheetId || selectedConfig.table || !data || rxActive}
+					on:click={() => {
+						updateData = {
+							oldPreviewName: scenes[previewIndex]?.name,
+							oldCurrentName: scenes[currentIndex]?.name,
+						};
+						updateSheet(selectedConfig.sheetId);
+					}}
 				>
 					<box-icon name="refresh" color="currentColor" size="1em" />
 					<br />Update
@@ -428,9 +473,12 @@
 
 <DbManager />
 <Settings />
-{#each $toasts as toastMessage}
-	<Toast {toastMessage} />
-{/each}
+
+<div class="toasts">
+	{#each $toasts as toastMessage}
+		<Toast {toastMessage} />
+	{/each}
+</div>
 
 <style lang="scss">
 	main {
@@ -544,5 +592,10 @@
 		justify-content: space-between;
 		gap: var(--spacing);
 		overflow: auto;
+	}
+	.toasts {
+		position: fixed;
+		top: 0;
+		left: 0;
 	}
 </style>
