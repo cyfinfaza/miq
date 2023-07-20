@@ -53,6 +53,11 @@
 				An OSC WebSocket proxy, such as <a href="https://www.npmjs.com/package/x32-proxy" target="_blank">x32-proxy</a>,
 				is required to connect to a mixer.
 			</p>
+			<p>
+				If you are using x32-proxy, use the following command to connect: <br />
+				<code>x32-proxy --ws --target your.mixer.ip.address</code> <br />
+				then, leaving the settings below blank, tap connect.
+			</p>
 			<div class="verti" disabled={$oscStatus.connected || null}>
 				<p>Host: <input type="text" bind:value={$oscConfig.host} /></p>
 				<p>Port: <input type="number" bind:value={$oscConfig.port} /></p>
