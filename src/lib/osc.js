@@ -4,6 +4,8 @@ import { makeToast, oscConfig } from "./stores";
 
 export const oscStatus = writable({ connected: false, address: null });
 
+export const channelMeters = writable([]);
+
 // var socket = new WebSocket("ws://127.0.0.1:8080");
 // // Connection opened
 // socket.addEventListener("open", function (event) {
@@ -70,6 +72,8 @@ export function getCompleteOscConfig(config) {
 	};
 }
 
+let liveRequestInterval;
+
 export function openOSC() {
 	const config = getCompleteOscConfig(get(oscConfig));
 
@@ -81,8 +85,17 @@ export function openOSC() {
 		}),
 	});
 
+	if (window) window.client = client;
+
 	client.on("*", (message) => {
-		console.log(message.args);
+		console.log(message.address, message.args);
+		if (message.address === "/meters/6") {
+			let meters = new Float32Array(message.args[0].buffer.slice(16));
+			console.log(meters[0]);
+		} else if (message.address === "/meters/1") {
+			let meters = new Float32Array(message.args[0].buffer.slice(24));
+			channelMeters.set(meters.slice(0, 32));
+		}
 	});
 
 	client.on("open", () => {
@@ -90,12 +103,20 @@ export function openOSC() {
 			connected: true,
 			address: client.options.plugin.options.host,
 		});
+		const liveRequestFunction = () => {
+			if (config.liveMetersEnabled) {
+				client.send(new osc.Message("/meters", "/meters/1"));
+			}
+		};
+		liveRequestFunction();
+		liveRequestInterval = setInterval(liveRequestFunction, 5000);
 	});
 	client.on("close", () => {
 		oscStatus.set({
 			connected: false,
 			address: null,
 		});
+		clearInterval(liveRequestInterval);
 	});
 	client.on("error", (error) => {
 		console.error("OSC Error", error);
@@ -104,6 +125,7 @@ export function openOSC() {
 			connected: false,
 			address: null,
 		});
+		clearInterval(liveRequestInterval);
 	});
 	client.open();
 	// try {

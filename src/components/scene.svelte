@@ -1,6 +1,9 @@
 <script>
 	export let scene;
 	export let live = false;
+	import { channelMeters, oscStatus } from "../lib/osc.js";
+	import { oscConfig } from "../lib/stores";
+	import MeterCanvas from "./meterCanvas.svelte";
 </script>
 
 <div class="scene" class:live>
@@ -13,20 +16,30 @@
 		</h2>
 		<div class="channels">
 			{#each Object.keys(scene?.mics || {}) as i}
-				<div class="channel" class:accent={scene?.mics[i]?.active} class:dne={!scene?.mics[i]}>
+				<div
+					class="channel"
+					class:accent={scene?.mics[i]?.active}
+					class:dne={!scene?.mics[i]}
+					class:meteringEnabled={$oscStatus.connected && $oscConfig.liveMetersEnabled}
+				>
+					<!-- <div class="channelMeter" style:height={`calc(100% * ${$channelMeters[i - 1]})`} /> -->
+					<MeterCanvas channel={i} />
 					<h3 style="font-weight: 400; text-overflow: clip;">{i}</h3>
 					<div>
 						<p
 							class="actorLabel"
 							class:bigLabel={scene?.mics[i]?.character?.startsWith("#")}
 							class:actorChanging={scene?.mics[i]?.switchingFrom}
+							style="z-index: 10;"
 						>
-							{#if scene?.mics[i]?.switchingFrom}
-								{scene?.mics[i]?.switchingFrom || ""}
-								<br /> <strong>&rarr; {scene?.mics[i]?.actor || ""}</strong>
-							{:else}
-								{scene?.mics[i]?.actor || ""}
-							{/if}
+							<span>
+								{#if scene?.mics[i]?.switchingFrom}
+									{scene?.mics[i]?.switchingFrom || ""}
+									<br /> <strong>&rarr; {scene?.mics[i]?.actor || ""}</strong>
+								{:else}
+									{scene?.mics[i]?.actor || ""}
+								{/if}
+							</span>
 						</p>
 						<p class={scene?.mics[i]?.character?.startsWith("#") ? "smallLabel" : "bigLabel"}>
 							{scene?.mics[i]?.character || ""}
@@ -97,6 +110,10 @@
 		:global(.miniMode) & {
 			height: unset;
 		}
+		* {
+			z-index: 30;
+		}
+		position: relative;
 	}
 
 	.actorLabel {
@@ -106,12 +123,20 @@
 		top: 4px;
 		right: 4px;
 		width: 100%;
+		> * {
+			z-index: 30;
+		}
 		&.actorChanging {
 			transition: 360ms;
 			transition-delay: 120ms;
 			background: #fe0;
 			color: #000;
 		}
+	}
+
+	.meteringEnabled .actorLabel.actorChanging {
+		background: #ff04;
+		color: white;
 	}
 
 	.bigLabel {
@@ -148,5 +173,12 @@
 		padding: 0.1em 0.2em;
 		border-radius: min(0.2em, var(--rounding));
 		vertical-align: text-bottom;
+	}
+	.channelMeter {
+		background: #fff4;
+		position: absolute;
+		width: 100%;
+		bottom: 0;
+		left: 0;
 	}
 </style>
