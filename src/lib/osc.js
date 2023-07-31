@@ -39,21 +39,25 @@ export function onFireOsc(scene) {
 	// }
 
 	if (scene?.mics) {
-		Object.keys(scene.mics).forEach((channel) => {
-			let mic = scene.mics[channel];
-			channel = String(channel).padStart(2, "0");
-			if (mic) {
-				console.log("sent osc message");
-				client.send(new osc.Message(`/ch/${channel}/mix/on`, mic.active ? 780 : 0));
-				client.send(new osc.Message(`/ch/${channel}/config/color`, mic.active ? 6 : 1));
-				client.send(
-					new osc.Message(
-						`/ch/${channel}/config/name`,
-						mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor
-					)
-				);
-			}
-		});
+		const sendNum = Math.round(Math.min(Math.max(get(oscConfig).resendNum, 0), 4)) + 1;
+		console.log("sending", sendNum, "times");
+		for (let sends = 0; sends < sendNum; sends++) {
+			Object.keys(scene.mics).forEach((channel) => {
+				let mic = scene.mics[channel];
+				channel = String(channel).padStart(2, "0");
+				if (mic) {
+					console.log("sent osc message");
+					client.send(new osc.Message(`/ch/${channel}/mix/on`, mic.active ? 780 : 0));
+					client.send(new osc.Message(`/ch/${channel}/config/color`, mic.active ? 6 : 1));
+					client.send(
+						new osc.Message(
+							`/ch/${channel}/config/name`,
+							mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor
+						)
+					);
+				}
+			});
+		}
 	}
 }
 

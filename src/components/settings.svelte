@@ -62,6 +62,7 @@
 				<p>Host: <input type="text" bind:value={$oscConfig.host} /></p>
 				<p>Port: <input type="number" bind:value={$oscConfig.port} /></p>
 				<p>Secure: <input type="checkbox" bind:checked={$oscConfig.secure} /></p>
+				<p>Resend cues (0≤n≤4): <input type="number" bind:value={$oscConfig.resendNum} min="0" max="4" /> times</p>
 			</div>
 			<p>
 				{#if $oscStatus.connected}
