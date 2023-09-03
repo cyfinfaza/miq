@@ -7,8 +7,18 @@
 	import Settings from "./components/settings.svelte";
 	import Toast from "./components/toast.svelte";
 
-	import { showingModal, selectedConfigId, mqttStatus, mqttConfig, oscConfig, toasts, makeToast } from "./lib/stores";
-	import { onFireOsc, oscStatus, openOSC, closeOSC, getCompleteOscConfig } from "./lib/osc";
+	import {
+		showingModal,
+		selectedConfigId,
+		mqttStatus,
+		mqttConfig,
+		toasts,
+		makeToast,
+		currentConnection,
+		currentConnectionStatus,
+		connectionMode,
+	} from "./lib/stores";
+	import { newConnection, connectionAddress } from "./lib/connectionUtil";
 	import { configs, sheets, ddp, loadExternalConfig, updateSheet } from "./lib/db";
 	import { connect, disconnect, getCompleteMqttConfig, incomingMessage, mqttClient } from "./lib/mqtt";
 
@@ -190,7 +200,7 @@
 				inline: "center",
 			});
 		}
-		onFireOsc(scenes[currentIndex]);
+		$currentConnection.onFire(scenes[currentIndex]);
 	}
 
 	$: sceneSelector?.querySelectorAll("button")[previewIndex]?.scrollIntoView({
@@ -364,25 +374,23 @@
 				{/if}
 			</button>
 			<button
-				on:click={$oscStatus.connected ? closeOSC() : openOSC()}
+				on:click={$currentConnectionStatus.connected ? $currentConnection.close() : newConnection()}
 				class="connectionButton"
 				style="position: relative;"
 				style:display={rxActive ? "none" : null}
 			>
-				OSC/WS:
+				{$connectionMode === "osc" ? "OSC/WS" : $connectionMode === "ms" ? "MS/WS" : ""}:
 				<br />
-				<span style:color={$oscStatus.connected ? "var(--green)" : "var(--red)"}>
+				<span style:color={$currentConnectionStatus.connected ? "var(--green)" : "var(--red)"}>
 					<div class="iconlabel">
-						<box-icon name={$oscStatus.connected ? "wifi" : "wifi-off"} color="currentColor" size="1em" />
-						<strong>
-							{getCompleteOscConfig($oscConfig).host}:{getCompleteOscConfig($oscConfig).port}
-						</strong>
+						<box-icon name={$currentConnectionStatus.connected ? "wifi" : "wifi-off"} color="currentColor" size="1em" />
+						<strong>{$connectionAddress}</strong>
 					</div>
-					<!-- {#if $oscStatus.address}
-						({$oscStatus.address})
+					<!-- {#if $currentConnectionStatus.address}
+						({$currentConnectionStatus.address})
 					{/if} -->
 				</span>
-				<span class="minilabel">tap to {$oscStatus.connected ? "disconnect" : "connect"}</span>
+				<span class="minilabel">tap to {$currentConnectionStatus.connected ? "disconnect" : "connect"}</span>
 			</button>
 			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
 				<button

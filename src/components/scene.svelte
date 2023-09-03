@@ -1,8 +1,7 @@
 <script>
 	export let scene;
 	export let live = false;
-	import { channelMeters, oscStatus } from "../lib/osc.js";
-	import { oscConfig } from "../lib/stores";
+	import { connectionMode, currentConnectionStatus, oscConfig } from "../lib/stores";
 	import MeterCanvas from "./meterCanvas.svelte";
 </script>
 
@@ -20,7 +19,9 @@
 					class="channel"
 					class:accent={scene?.mics[i]?.active}
 					class:dne={!scene?.mics[i]}
-					class:meteringEnabled={$oscStatus.connected && $oscConfig.liveMetersEnabled}
+					class:meteringEnabled={$connectionMode === "osc" &&
+						$currentConnectionStatus.connected &&
+						$oscConfig.liveMetersEnabled}
 				>
 					<!-- <div class="channelMeter" style:height={`calc(100% * ${$channelMeters[i - 1]})`} /> -->
 					<MeterCanvas channel={i} />
