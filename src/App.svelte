@@ -200,7 +200,7 @@
 				inline: "center",
 			});
 		}
-		$currentConnection.onFire(scenes[currentIndex]);
+		$currentConnection?.onFire(scenes[currentIndex]);
 	}
 
 	$: sceneSelector?.querySelectorAll("button")[previewIndex]?.scrollIntoView({

@@ -4,6 +4,7 @@ import { BaseConnection } from "./baseConnection";
 
 export class MixingStationConnection extends BaseConnection {
 	client;
+	nameCharacterLimit = 0; // none to start
 
 	constructor() {
 		super();
@@ -11,22 +12,51 @@ export class MixingStationConnection extends BaseConnection {
 		const config = MixingStationConnection.getCompleteConfig();
 
 		this.client = new WebSocket(`ws${config.secure ? "s" : ""}://${config.host}:${config.port}/`);
+		if (window) window.msClient = this.client;
 
 		this.client.onopen = () => {
 			currentConnectionStatus.set({
 				connected: true,
 				address: new URL(this.client.url).host,
 			});
+
+			const testKey = "ch.0.cfg.name";
+			this.client.onmessage = (e) => {
+				try {
+					const res = JSON.parse(e.data);
+
+					// not connected to mixer or something else bad
+					if (res.error) {
+						makeToast("Mixing Station WS Error", res.error, "error");
+						if (res.error.includes("not available")) this.client.close(); // ungraceful close (it's an error), no autoreconnect
+					}
+
+					if (this.nameCharacterLimit === 0)
+						res?.body?.definitions?.[testKey]?.constraints?.forEach((c) => {
+							const trim = "Max length ";
+							if (!c.startsWith(trim)) return;
+							const num = parseInt(c.slice(trim.length));
+							console.log(num);
+							if (isFinite(num)) {
+								this.nameCharacterLimit = num;
+							}
+						});
+				} catch (err) {}
+			};
+			// get string length now as it's dependent on the console, also verifies the console is ok
+			this.client.send(
+				JSON.stringify({
+					path: `/console/data/definitions/${testKey}`,
+					method: "GET",
+					body: null,
+				})
+			);
 		};
-		this.client.onclose = () => {
-			currentConnectionStatus.set({ connected: false, address: null });
-		};
+		this.client.onclose = this._onSocketClose;
 		this.client.onerror = (error) => {
 			makeToast("Mixing Station WS Error", "", "error");
 			currentConnectionStatus.set({ connected: false, address: null });
 		};
-
-		// todo: validate connected mixer
 	}
 
 	_sendMessage(channel, path, value) {
@@ -39,28 +69,14 @@ export class MixingStationConnection extends BaseConnection {
 		);
 	}
 
-	onFire(scene) {
-		if (scene?.mics) {
-			const sendNum = Math.round(Math.min(Math.max(get(msConfig).resendNum, 0), 4)) + 1;
-			console.log("sending", sendNum, "times");
-			for (let sends = 0; sends < sendNum; sends++) {
-				Object.keys(scene.mics).forEach((channel) => {
-					let mic = scene.mics[channel];
-					channel = channel - 1; // 0 indexed in api
-					if (mic) {
-						this._sendMessage(channel, "mix.on", mic.active);
-						this._sendMessage(
-							channel,
-							"cfg.name",
-							(mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor)
-								// for sq, todo: change based on connected mixer
-								.substr(0, 6)
-						);
-						this._sendMessage(channel, "cfg.color", mic.active ? 4 : 1);
-					}
-				});
-			}
-		}
+	_fireChannel(channel, active, name) {
+		channel -= 1; // 0 indexed in api
+
+		this._sendMessage(channel, "mix.on", active);
+		if (this.nameCharacterLimit) name = name.substr(0, this.nameCharacterLimit);
+		this._sendMessage(channel, "cfg.name", name);
+		// todo: different colors for different mixers? (not high priority)
+		this._sendMessage(channel, "cfg.color", active ? 4 : 1);
 	}
 
 	static getCompleteConfig() {
@@ -74,6 +90,7 @@ export class MixingStationConnection extends BaseConnection {
 	}
 
 	close() {
+		super.close();
 		this.client.close();
 	}
 }

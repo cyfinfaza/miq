@@ -49,7 +49,7 @@ export class OSCConnection extends BaseConnection {
 			this.liveRequestInterval = setInterval(liveRequestFunction, 5000);
 		});
 		this.client.on("close", () => {
-			currentConnectionStatus.set({ connected: false, address: null });
+			this._onSocketClose();
 			clearInterval(this.liveRequestInterval);
 		});
 		this.client.on("error", (error) => {
@@ -65,33 +65,10 @@ export class OSCConnection extends BaseConnection {
 		// }
 	}
 
-	onFire(scene) {
-		// if (this.client.status() !== osc.STATUS.IS_OPEN) {
-		// 	console.warn("not firing, osc not connected");
-		// 	return;
-		// }
-
-		if (scene?.mics) {
-			const sendNum = Math.round(Math.min(Math.max(get(oscConfig).resendNum, 0), 4)) + 1;
-			console.log("sending", sendNum, "times");
-			for (let sends = 0; sends < sendNum; sends++) {
-				Object.keys(scene.mics).forEach((channel) => {
-					let mic = scene.mics[channel];
-					channel = String(channel).padStart(2, "0");
-					if (mic) {
-						console.log("sent osc message");
-						this.client.send(new osc.Message(`/ch/${channel}/mix/on`, mic.active ? 780 : 0));
-						this.client.send(new osc.Message(`/ch/${channel}/config/color`, mic.active ? 6 : 1));
-						this.client.send(
-							new osc.Message(
-								`/ch/${channel}/config/name`,
-								mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor
-							)
-						);
-					}
-				});
-			}
-		}
+	_fireChannel(channel, active, name) {
+		this.client.send(new osc.Message(`/ch/${channel}/mix/on`, active ? 780 : 0));
+		this.client.send(new osc.Message(`/ch/${channel}/config/color`, active ? 6 : 1));
+		this.client.send(new osc.Message(`/ch/${channel}/config/name`, name));
 	}
 
 	static getCompleteConfig() {
@@ -105,6 +82,7 @@ export class OSCConnection extends BaseConnection {
 	}
 
 	close() {
+		super.close();
 		this.client.close();
 		clearInterval(this.liveRequestInterval);
 	}

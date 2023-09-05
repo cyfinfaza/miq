@@ -54,7 +54,7 @@
 					<option value="osc">OSC/WS</option>
 					<option value="ms">Mixing Station/WS</option>
 				</select>
-				{#if $currentConnectionStatus.connected}(unavailable while connected){/if}
+				{#if $currentConnectionStatus.connected}(disconnect to edit){/if}
 			</p>
 
 			{#if $connectionMode === "osc"}
