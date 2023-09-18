@@ -5,6 +5,7 @@ import { BaseConnection } from "./baseConnection";
 export class MixingStationConnection extends BaseConnection {
 	client;
 	nameCharacterLimit = 0; // none to start
+	_pingInterval;
 
 	constructor() {
 		super();
@@ -28,7 +29,7 @@ export class MixingStationConnection extends BaseConnection {
 					// not connected to mixer or something else bad
 					if (res.error) {
 						makeToast("Mixing Station WS Error", res.error, "error");
-						if (res.error.includes("not available")) this.client.close(); // ungraceful close (it's an error), no autoreconnect
+						if (res.error.includes("not available") || res.error.includes("not started")) this.close(); // graceful close (no more mixer for the forseeable future) so no auto reconnect
 					}
 
 					if (this.nameCharacterLimit === 0)
@@ -36,7 +37,6 @@ export class MixingStationConnection extends BaseConnection {
 							const trim = "Max length ";
 							if (!c.startsWith(trim)) return;
 							const num = parseInt(c.slice(trim.length));
-							console.log(num);
 							if (isFinite(num)) {
 								this.nameCharacterLimit = num;
 							}
@@ -51,10 +51,26 @@ export class MixingStationConnection extends BaseConnection {
 					body: null,
 				})
 			);
+
+			// mixing station will disconnect exactly 30 seconds after the last message
+			// so send a generic ping message to keep it alive
+			const ping = () => {
+				this.client.send(
+					JSON.stringify({
+						path: "/app/ui/selectedChannel",
+						method: "GET",
+						body: null,
+					})
+				);
+			};
+			this._pingInterval = setInterval(ping, 28000);
 		};
-		this.client.onclose = this._onSocketClose;
+		this.client.onclose = () => {
+			if (this._pingInterval) this._pingInterval = clearInterval(this._pingInterval);
+			this._onSocketClose();
+		};
 		this.client.onerror = (error) => {
-			makeToast("Mixing Station WS Error", "", "error");
+			makeToast("Mixing Station WS Error", "", error);
 			currentConnectionStatus.set({ connected: false, address: null });
 		};
 	}

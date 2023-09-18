@@ -1,4 +1,4 @@
-import { currentConnection, currentConnectionStatus } from "../lib/stores";
+import { currentConnection, currentConnectionStatus, makeToast } from "../lib/stores";
 import { get } from "svelte/store";
 
 export class BaseConnection {
@@ -44,6 +44,14 @@ export class BaseConnection {
 		currentConnectionStatus.set({ connected: false, address: null });
 
 		// try autoreconnecting if we shouldn't have been disconnected
-		if (get(currentConnection) === this) currentConnection.set(new this.constructor());
+		if (get(currentConnection) === this)
+			setTimeout(() => {
+				// recheck incase config changed between now and then
+				if (get(currentConnection) === this) {
+					currentConnection.set(new this.constructor());
+					makeToast("Mixer autoreconnecing", null, "warn");
+				}
+				// delay to not ddos in case something goes horrifically wrong
+			}, 1000);
 	}
 }

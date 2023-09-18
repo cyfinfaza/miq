@@ -32,8 +32,8 @@
 	>
 		<box-icon style="flex-shrink: 0" name={style.icon} color={style.color} />
 		<p style="text-overflow: ellipsis; max-height: 100%; overflow: hidden;">
-			<strong>{title || "Message"}</strong><br />
-			<span style="white-space: nowrap; text-overflow: ellipses">{message}</span>
+			<strong title={title || null}>{title || "Message"}</strong><br />
+			<span style="white-space: nowrap; text-overflow: ellipses" title={message}>{message}</span>
 		</p>
 		<box-icon
 			name="x"
