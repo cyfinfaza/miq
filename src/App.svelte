@@ -379,7 +379,7 @@
 				style="position: relative;"
 				style:display={rxActive ? "none" : null}
 			>
-				{$connectionMode === "osc" ? "OSC/WS" : $connectionMode === "ms" ? "MS/WS" : ""}:
+				{$connectionMode === "osc" ? "x32-proxy" : $connectionMode === "ms" ? "Mixing Station" : ""}:
 				<br />
 				<span style:color={$currentConnectionStatus.connected ? "var(--green)" : "var(--red)"}>
 					<div class="iconlabel">

@@ -102,6 +102,7 @@ export class MixingStationConnection extends BaseConnection {
 			host: config.host || "localhost",
 			port: config.port || 8080,
 			secure: config.secure ?? false,
+			autoReconnect: config.autoReconnect ?? false,
 		};
 	}
 

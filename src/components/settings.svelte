@@ -51,8 +51,8 @@
 		<div class="verti">
 			<p>
 				Connection mode: <select disabled={$currentConnectionStatus.connected} bind:value={$connectionMode}>
-					<option value="osc">OSC/WS</option>
-					<option value="ms">Mixing Station/WS</option>
+					<option value="osc">x32-proxy</option>
+					<option value="ms">Mixing Station</option>
 				</select>
 				{#if $currentConnectionStatus.connected}(disconnect to edit){/if}
 			</p>
@@ -73,6 +73,7 @@
 					<p>Secure: <input type="checkbox" bind:checked={$oscConfig.secure} /></p>
 					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$oscConfig.resendNum} min="0" max="4" /> times</p>
 					<p>Enable Live Metering?: <input type="checkbox" bind:checked={$oscConfig.liveMetersEnabled} /></p>
+					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$oscConfig.autoReconnect} /></p>
 				</div>
 			{:else if $connectionMode === "ms"}
 				<p>
@@ -85,6 +86,7 @@
 					<p>Port: <input type="number" bind:value={$msConfig.port} /></p>
 					<p>Secure: <input type="checkbox" bind:checked={$msConfig.secure} /></p>
 					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$msConfig.resendNum} min="0" max="4" /> times</p>
+					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$msConfig.autoReconnect} /></p>
 				</div>
 			{/if}
 			<p>

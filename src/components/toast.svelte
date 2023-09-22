@@ -56,7 +56,7 @@
 		box-sizing: border-box;
 		border-radius: var(--rounding);
 		font-size: 0.7em;
-		max-width: 300px;
+		max-width: 400px;
 		z-index: 1000;
 		box-shadow: 0 0 5px 0 var(--bg);
 	}
