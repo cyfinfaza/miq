@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 
 export const showingModal = writable([]);
 
@@ -8,28 +8,37 @@ window?.addEventListener("keydown", (e) => {
 	}
 });
 
-// export const dataSourceConfig = writable(JSON.parse(localStorage.getItem("dataSourceConfig")) || []);
-// dataSourceConfig.subscribe((value) => localStorage.setItem("dataSourceConfig", JSON.stringify(value)));
+function localStorageWritable(key, defaultValue) {
+	const store = writable(JSON.parse(localStorage.getItem(key)) || defaultValue);
+	store.subscribe((value) => localStorage.setItem(key, JSON.stringify(value)));
+	return store;
+}
 
-// export const selectedDataSourceId = writable(JSON.parse(localStorage.getItem("selectedDataSource")) || null);
-// selectedDataSourceId.subscribe((value) => localStorage.setItem("selectedDataSource", JSON.stringify(value)));
+export const selectedConfigId = localStorageWritable("selectedConfig", null);
 
-export const selectedConfigId = writable(JSON.parse(localStorage.getItem("selectedConfig")) || null);
-selectedConfigId.subscribe((value) => localStorage.setItem("selectedConfig", JSON.stringify(value)));
-
-export const mqttConfig = writable(
-	JSON.parse(localStorage.getItem("mqttConfig")) || {
-		mode: "tx",
-		rx_preview: true,
-		rx_live: false,
-	}
-);
-mqttConfig.subscribe((value) => localStorage.setItem("mqttConfig", JSON.stringify(value)));
-
+export const mqttConfig = localStorageWritable("mqttConfig", {
+	mode: "tx",
+	rx_preview: true,
+	rx_live: false,
+});
 export const mqttStatus = writable({ connected: false, address: null });
 
-export const oscConfig = writable(JSON.parse(localStorage.getItem("oscConfig")) || {});
-oscConfig.subscribe((value) => localStorage.setItem("oscConfig", JSON.stringify(value)));
+export const connectionMode = localStorageWritable("connectionMode", "osc");
+export const oscConfig = localStorageWritable("oscConfig", {});
+export const msConfig = localStorageWritable("msConfig", {});
+
+/** @type {import("svelte/store").Writable<import("./connection").BaseConnection>} */
+export const currentConnection = writable(null);
+export const currentConnectionStatus = writable({ connected: false, address: null });
+
+// disconnect when switching modes
+let lastConnectionMode = null;
+connectionMode.subscribe((mode) => {
+	if (mode !== lastConnectionMode) {
+		lastConnectionMode = mode;
+		get(currentConnection)?.close();
+	}
+});
 
 export const toasts = writable([]);
 /** @param {"info"|"warn"|"error"} type */
