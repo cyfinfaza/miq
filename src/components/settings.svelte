@@ -11,6 +11,71 @@
 <Modal modalName="settings">
 	<h1>Settings</h1>
 	<details>
+		<summary>Mixer Connection</summary>
+		<div class="verti">
+			<p>MIQ requires a proxy to connect to a mixer. 2 proxy methods are supported:</p>
+			<ul>
+				<li>
+					<a href="https://www.npmjs.com/package/x32-proxy" target="_blank" class="openNewIcon">x32-proxy</a>: For
+					Behringer/Midas M32/X32 mixers only. Free, requires NodeJS.
+				</li>
+				<li>
+					<a href="https://mixingstation.app/" target="_blank" class="openNewIcon">Mixing Station</a>: For several
+					popular mixers. Paid, stanalone, only newer versions are supported.
+				</li>
+			</ul>
+
+			<p>
+				Connection mode: <select disabled={$currentConnectionStatus.connected} bind:value={$connectionMode}>
+					<option value="osc">x32-proxy</option>
+					<option value="ms">Mixing Station</option>
+				</select>
+				{#if $currentConnectionStatus.connected}(disconnect to edit){/if}
+			</p>
+
+			{#if $connectionMode === "osc"}
+				<p>
+					Once <a href="https://www.npmjs.com/package/x32-proxy" target="_blank">x32-proxy</a> is installed, use the
+					following command to start up the proxy server: <br />
+					<code>x32-proxy --ws --target your.mixer.ip.address</code> <br />
+					then, leaving the settings below blank, tap connect.
+				</p>
+				<div class="verti" disabled={$currentConnectionStatus.connected || null}>
+					<p>Host: <input type="text" bind:value={$oscConfig.host} /></p>
+					<p>Port: <input type="number" bind:value={$oscConfig.port} /></p>
+					<p>Secure: <input type="checkbox" bind:checked={$oscConfig.secure} /></p>
+					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$oscConfig.resendNum} min="0" max="4" /> times</p>
+					<p>Enable Live Metering?: <input type="checkbox" bind:checked={$oscConfig.liveMetersEnabled} /></p>
+					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$oscConfig.autoReconnect} /></p>
+				</div>
+			{:else if $connectionMode === "ms"}
+				<p>
+					On the start-up screen of <a href="https://mixingstation.app/" target="_blank">Mixing Station</a>, click the
+					settings cog in the upper right corner, then enable the REST API:
+					<strong>Global Settings &rarr; API: HTTP REST &rarr; Enable.</strong>
+				</p>
+				<p>
+					Once you have enabled the API, <strong>first</strong> connect to your mixer through Mixing Station.
+					<strong>Then,</strong> leaving the settings below blank, tap connect.
+				</p>
+				<div class="verti" disabled={$currentConnectionStatus.connected || null}>
+					<p>Host: <input type="text" bind:value={$msConfig.host} /></p>
+					<p>Port: <input type="number" bind:value={$msConfig.port} /></p>
+					<p>Secure: <input type="checkbox" bind:checked={$msConfig.secure} /></p>
+					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$msConfig.resendNum} min="0" max="4" /> times</p>
+					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$msConfig.autoReconnect} /></p>
+				</div>
+			{/if}
+			<p>
+				{#if $currentConnectionStatus.connected}
+					<button class="green" on:click={$currentConnection.close()}>Connected (tap to disconnect)</button>
+				{:else}
+					<button class="red" on:click={newConnection}>Disconnected (tap to connect)</button>
+				{/if}
+			</p>
+		</div>
+	</details>
+	<details>
 		<summary> MQTT </summary>
 		<div class="verti" style="align-items: flex-start">
 			<div class="verti" disabled={$mqttStatus.connected || null}>
@@ -42,58 +107,6 @@
 					<button class="green" on:click={disconnect}>Connected (tap to disconnect)</button>
 				{:else}
 					<button class="red" on:click={connect}>Disconnected (tap to connect)</button>
-				{/if}
-			</p>
-		</div>
-	</details>
-	<details>
-		<summary>Mixer Connection</summary>
-		<div class="verti">
-			<p>
-				Connection mode: <select disabled={$currentConnectionStatus.connected} bind:value={$connectionMode}>
-					<option value="osc">x32-proxy</option>
-					<option value="ms">Mixing Station</option>
-				</select>
-				{#if $currentConnectionStatus.connected}(disconnect to edit){/if}
-			</p>
-
-			{#if $connectionMode === "osc"}
-				<p>
-					An OSC WebSocket proxy, such as <a href="https://www.npmjs.com/package/x32-proxy" target="_blank">x32-proxy</a
-					>, is required to connect to a mixer.
-				</p>
-				<p>
-					If you are using x32-proxy, use the following command to connect: <br />
-					<code>x32-proxy --ws --target your.mixer.ip.address</code> <br />
-					then, leaving the settings below blank, tap connect.
-				</p>
-				<div class="verti" disabled={$currentConnectionStatus.connected || null}>
-					<p>Host: <input type="text" bind:value={$oscConfig.host} /></p>
-					<p>Port: <input type="number" bind:value={$oscConfig.port} /></p>
-					<p>Secure: <input type="checkbox" bind:checked={$oscConfig.secure} /></p>
-					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$oscConfig.resendNum} min="0" max="4" /> times</p>
-					<p>Enable Live Metering?: <input type="checkbox" bind:checked={$oscConfig.liveMetersEnabled} /></p>
-					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$oscConfig.autoReconnect} /></p>
-				</div>
-			{:else if $connectionMode === "ms"}
-				<p>
-					<a href="https://mixingstation.app/" target="_blank">Mixing Station</a> includes a common
-					<a href="https://mixingstation.app/ms-docs/integrations/apis/" target="_blank">API</a>
-					for controlling mixers. It needs to be enabled under <code>Global Settings > API: HTTP REST > Enable.</code>
-				</p>
-				<div class="verti" disabled={$currentConnectionStatus.connected || null}>
-					<p>Host: <input type="text" bind:value={$msConfig.host} /></p>
-					<p>Port: <input type="number" bind:value={$msConfig.port} /></p>
-					<p>Secure: <input type="checkbox" bind:checked={$msConfig.secure} /></p>
-					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$msConfig.resendNum} min="0" max="4" /> times</p>
-					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$msConfig.autoReconnect} /></p>
-				</div>
-			{/if}
-			<p>
-				{#if $currentConnectionStatus.connected}
-					<button class="green" on:click={$currentConnection.close()}>Connected (tap to disconnect)</button>
-				{:else}
-					<button class="red" on:click={newConnection}>Disconnected (tap to connect)</button>
 				{/if}
 			</p>
 		</div>

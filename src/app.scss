@@ -12,6 +12,7 @@ body {
 	--green: #0f0;
 	--green-text: #000;
 	--accent: #17e;
+	--accent-bright: rgb(65, 154, 255);
 	--accent-text: #fff;
 	--yellow: #fe0;
 	--text: #fff;
@@ -209,4 +210,14 @@ input[type="checkbox"] {
 	width: 1em;
 	height: 1em;
 	cursor: pointer;
+}
+
+a.openNewIcon::after {
+	content: "↗";
+	// font-size: 0.8em;
+	// margin-left: 0.2em;
+}
+
+a {
+	color: var(--accent-bright);
 }
