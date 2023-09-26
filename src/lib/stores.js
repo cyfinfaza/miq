@@ -29,7 +29,16 @@ export const msConfig = localStorageWritable("msConfig", {});
 
 /** @type {import("svelte/store").Writable<import("./connection").BaseConnection>} */
 export const currentConnection = writable(null);
-export const currentConnectionStatus = writable({ connected: false, address: null });
+
+/** @enum {number} */
+export const ConnectionStatusEnum = /** @type {const} */ ({
+	DISCONNECTED: 0,
+	// truthy values are not disconnected
+	CONNECTED: 1,
+	CONNECTING: 2,
+});
+/** @type {import("svelte/store").Writable<{status: typeof ConnectionStatusEnum[keyof typeof ConnectionStatusEnum]}>} */
+export const currentConnectionStatus = writable({ status: ConnectionStatusEnum.DISCONNECTED, address: null });
 
 // disconnect when switching modes
 let lastConnectionMode = null;

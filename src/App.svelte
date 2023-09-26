@@ -17,6 +17,7 @@
 		currentConnection,
 		currentConnectionStatus,
 		connectionMode,
+		ConnectionStatusEnum,
 	} from "./lib/stores";
 	import { newConnection, connectionAddress } from "./lib/connectionUtil";
 	import { configs, sheets, ddp, loadExternalConfig, updateSheet } from "./lib/db";
@@ -374,23 +375,45 @@
 				{/if}
 			</button>
 			<button
-				on:click={$currentConnectionStatus.connected ? $currentConnection.close() : newConnection()}
+				on:click={$currentConnectionStatus.status > 0 ? $currentConnection.close() : newConnection()}
 				class="connectionButton"
 				style="position: relative;"
 				style:display={rxActive ? "none" : null}
 			>
 				{$connectionMode === "osc" ? "x32-proxy" : $connectionMode === "ms" ? "Mixing Station" : ""}:
 				<br />
-				<span style:color={$currentConnectionStatus.connected ? "var(--green)" : "var(--red)"}>
+				<span
+					style:color={`var(--${
+						$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
+							? "green"
+							: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
+							? "yellow"
+							: "red"
+					})`}
+				>
 					<div class="iconlabel">
-						<box-icon name={$currentConnectionStatus.connected ? "wifi" : "wifi-off"} color="currentColor" size="1em" />
+						<box-icon
+							name={$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
+								? "wifi"
+								: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
+								? "hourglass"
+								: "wifi-off"}
+							color="currentColor"
+							size="1em"
+						/>
 						<strong>{$connectionAddress}</strong>
 					</div>
 					<!-- {#if $currentConnectionStatus.address}
 						({$currentConnectionStatus.address})
 					{/if} -->
 				</span>
-				<span class="minilabel">tap to {$currentConnectionStatus.connected ? "disconnect" : "connect"}</span>
+				<span class="minilabel"
+					>tap to {$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
+						? "disconnect"
+						: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
+						? "stop connecting"
+						: "connect"}</span
+				>
 			</button>
 			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
 				<button
@@ -605,5 +628,6 @@
 		position: fixed;
 		top: 0;
 		left: 0;
+		z-index: 1000;
 	}
 </style>

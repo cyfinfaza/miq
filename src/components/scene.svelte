@@ -1,7 +1,7 @@
 <script>
 	export let scene;
 	export let live = false;
-	import { connectionMode, currentConnectionStatus, oscConfig } from "../lib/stores";
+	import { connectionMode, currentConnectionStatus, ConnectionStatusEnum, oscConfig } from "../lib/stores";
 	import MeterCanvas from "./meterCanvas.svelte";
 </script>
 
@@ -20,7 +20,7 @@
 					class:accent={scene?.mics[i]?.active}
 					class:dne={!scene?.mics[i]}
 					class:meteringEnabled={$connectionMode === "osc" &&
-						$currentConnectionStatus.connected &&
+						$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED &&
 						$oscConfig.liveMetersEnabled}
 				>
 					<!-- <div class="channelMeter" style:height={`calc(100% * ${$channelMeters[i - 1]})`} /> -->

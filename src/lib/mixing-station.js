@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { makeToast, msConfig, currentConnectionStatus } from "./stores";
+import { makeToast, msConfig, currentConnectionStatus, ConnectionStatusEnum } from "./stores";
 import { BaseConnection } from "./baseConnection";
 
 export class MixingStationConnection extends BaseConnection {
@@ -17,7 +17,7 @@ export class MixingStationConnection extends BaseConnection {
 
 		this.client.onopen = () => {
 			currentConnectionStatus.set({
-				connected: true,
+				status: ConnectionStatusEnum.CONNECTED,
 				address: new URL(this.client.url).host,
 			});
 
@@ -29,7 +29,7 @@ export class MixingStationConnection extends BaseConnection {
 					// not connected to mixer or something else bad
 					if (res.error) {
 						makeToast("Mixing Station WS Error", res.error, "error");
-						if (res.error.includes("not available") || res.error.includes("not started")) this.close(); // graceful close (no more mixer for the forseeable future) so no auto reconnect
+						if (res.error.includes("not available") || res.error.includes("not started")) this.close(true); // no mixer, so keep trying to reconnect ungracefully
 					}
 
 					if (this.nameCharacterLimit === 0)
@@ -69,9 +69,9 @@ export class MixingStationConnection extends BaseConnection {
 			if (this._pingInterval) this._pingInterval = clearInterval(this._pingInterval);
 			this._onSocketClose();
 		};
-		this.client.onerror = (error) => {
-			makeToast("Mixing Station WS Error", "", error);
-			currentConnectionStatus.set({ connected: false, address: null });
+		this.client.onerror = (event) => {
+			// let onclose handle close
+			if (event?.target?.readyState !== 3) makeToast("Mixing Station WS Error", "", "error");
 		};
 	}
 
@@ -90,7 +90,8 @@ export class MixingStationConnection extends BaseConnection {
 
 		this._sendMessage(channel, "mix.on", active);
 		if (this.nameCharacterLimit) name = name.substr(0, this.nameCharacterLimit);
-		this._sendMessage(channel, "cfg.name", name);
+		// mixing station won't accept forward slash or pipe even though sq does, so replace with something close enough
+		this._sendMessage(channel, "cfg.name", name.replace(/[\/\|]/g, "\\"));
 		// todo: different colors for different mixers? (not high priority)
 		this._sendMessage(channel, "cfg.color", active ? 4 : 1);
 	}
@@ -106,8 +107,8 @@ export class MixingStationConnection extends BaseConnection {
 		};
 	}
 
-	close() {
-		super.close();
+	close(ungraceful = false) {
+		super.close(ungraceful);
 		this.client.close();
 	}
 }
