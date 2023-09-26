@@ -39,6 +39,7 @@ export class OSCConnection extends BaseConnection {
 			currentConnectionStatus.set({
 				connected: true,
 				address: this.client.options.plugin.options.host,
+				reconnecting: false,
 			});
 			const liveRequestFunction = () => {
 				if (config.liveMetersEnabled) {
@@ -52,11 +53,13 @@ export class OSCConnection extends BaseConnection {
 			this._onSocketClose();
 			clearInterval(this.liveRequestInterval);
 		});
-		this.client.on("error", (error) => {
+		this.client.on("error", (e) => {
 			console.error("OSC Error", error);
-			makeToast("OSC Error", "", "error");
-			currentConnectionStatus.set({ connected: false, address: null });
-			clearInterval(this.liveRequestInterval);
+			// let onclose handle close
+			if (e?.target?.readyState !== 3) {
+				makeToast("OSC Error", "", "error");
+				clearInterval(this.liveRequestInterval);
+			}
 		});
 		this.client.open();
 		// try {

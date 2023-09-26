@@ -374,14 +374,20 @@
 				{/if}
 			</button>
 			<button
-				on:click={$currentConnectionStatus.connected ? $currentConnection.close() : newConnection()}
+				on:click={$currentConnectionStatus.connected || $currentConnectionStatus.reconnecting
+					? $currentConnection.close()
+					: newConnection()}
 				class="connectionButton"
 				style="position: relative;"
 				style:display={rxActive ? "none" : null}
 			>
 				{$connectionMode === "osc" ? "x32-proxy" : $connectionMode === "ms" ? "Mixing Station" : ""}:
 				<br />
-				<span style:color={$currentConnectionStatus.connected ? "var(--green)" : "var(--red)"}>
+				<span
+					style:color={`var(--${
+						$currentConnectionStatus.connected ? "green" : $currentConnectionStatus.reconnecting ? "yellow" : "red"
+					})`}
+				>
 					<div class="iconlabel">
 						<box-icon name={$currentConnectionStatus.connected ? "wifi" : "wifi-off"} color="currentColor" size="1em" />
 						<strong>{$connectionAddress}</strong>
@@ -390,7 +396,13 @@
 						({$currentConnectionStatus.address})
 					{/if} -->
 				</span>
-				<span class="minilabel">tap to {$currentConnectionStatus.connected ? "disconnect" : "connect"}</span>
+				<span class="minilabel"
+					>tap to {$currentConnectionStatus.connected
+						? "disconnect"
+						: $currentConnectionStatus.reconnecting
+						? "stop reconnecting"
+						: "connect"}</span
+				>
 			</button>
 			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
 				<button
@@ -605,5 +617,6 @@
 		position: fixed;
 		top: 0;
 		left: 0;
+		z-index: 1000;
 	}
 </style>

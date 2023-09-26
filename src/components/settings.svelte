@@ -69,6 +69,8 @@
 			<p>
 				{#if $currentConnectionStatus.connected}
 					<button class="green" on:click={$currentConnection.close()}>Connected (tap to disconnect)</button>
+				{:else if $currentConnectionStatus.reconnecting}
+					<button class="yellow" on:click={$currentConnection.close()}>Reconnecting (tap to stop)</button>
 				{:else}
 					<button class="red" on:click={newConnection}>Disconnected (tap to connect)</button>
 				{/if}

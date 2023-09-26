@@ -29,7 +29,7 @@ export const msConfig = localStorageWritable("msConfig", {});
 
 /** @type {import("svelte/store").Writable<import("./connection").BaseConnection>} */
 export const currentConnection = writable(null);
-export const currentConnectionStatus = writable({ connected: false, address: null });
+export const currentConnectionStatus = writable({ connected: false, address: null, reconnecting: false });
 
 // disconnect when switching modes
 let lastConnectionMode = null;

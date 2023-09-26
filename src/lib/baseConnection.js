@@ -3,8 +3,8 @@ import { get } from "svelte/store";
 
 export class BaseConnection {
 	constructor() {
-		// reset status
-		currentConnectionStatus.set({ connected: false, address: null });
+		// reset status but keep reconnecting indicator if set
+		currentConnectionStatus.set({ ...get(currentConnectionStatus), connected: false, address: null });
 	}
 
 	onFire(scene) {
@@ -26,7 +26,12 @@ export class BaseConnection {
 		}
 	}
 
-	/** triggered for each channel to update it on fire */
+	/**
+	 * triggered for each channel to update it on fire
+	 * @param {number} channel channel number
+	 * @param {boolean} active should be unmuted
+	 * @param {string} name channel strip name
+	 */
 	_fireChannel(channel, active, name) {}
 
 	static getCompleteConfig() {
@@ -38,28 +43,29 @@ export class BaseConnection {
 	/** gracefully close, for when the user wants to close it */
 	close() {
 		currentConnection.set(null); // unregister self for handling fires
+		currentConnectionStatus.set({ connected: false, address: null, reconnecting: false }); // clear state
 	}
 
 	_onSocketClose() {
-		currentConnectionStatus.set({ connected: false, address: null });
-
 		// try autoreconnecting if we shouldn't have been disconnected
 		if (get(currentConnection) === this) {
 			const willAutoReconnect = this.constructor.getCompleteConfig().autoReconnect;
 			makeToast(
 				"Mixer disconnected unexpectedly",
 				willAutoReconnect ? "Auto Reconnect is enabled" : "Auto Reconnect is disabled",
-				"error"
+				willAutoReconnect ? "warn" : "error"
 			);
+			currentConnectionStatus.set({ connected: false, address: null, reconnecting: willAutoReconnect });
 			if (willAutoReconnect)
 				setTimeout(() => {
 					// recheck incase config changed between now and then
 					if (get(currentConnection) === this) {
 						currentConnection.set(new this.constructor());
-						makeToast("Mixer Reconnecting", "", "warn");
+						// makeToast("Mixer Reconnecting", "", "warn"); // don't need to remind every time as light turns yellow and a new disconnect warning appears
 					}
 					// delay to not ddos in case something goes horrifically wrong
 				}, 1000);
 		}
+		// else we've closed as a new connection has taken over, let it do its thing
 	}
 }

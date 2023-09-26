@@ -19,6 +19,7 @@ export class MixingStationConnection extends BaseConnection {
 			currentConnectionStatus.set({
 				connected: true,
 				address: new URL(this.client.url).host,
+				reconnecting: false,
 			});
 
 			const testKey = "ch.0.cfg.name";
@@ -69,9 +70,9 @@ export class MixingStationConnection extends BaseConnection {
 			if (this._pingInterval) this._pingInterval = clearInterval(this._pingInterval);
 			this._onSocketClose();
 		};
-		this.client.onerror = (error) => {
-			makeToast("Mixing Station WS Error", "", error);
-			currentConnectionStatus.set({ connected: false, address: null });
+		this.client.onerror = (event) => {
+			// let onclose handle close
+			if (event?.target?.readyState !== 3) makeToast("Mixing Station WS Error", "", "error");
 		};
 	}
 
@@ -90,7 +91,8 @@ export class MixingStationConnection extends BaseConnection {
 
 		this._sendMessage(channel, "mix.on", active);
 		if (this.nameCharacterLimit) name = name.substr(0, this.nameCharacterLimit);
-		this._sendMessage(channel, "cfg.name", name);
+		// mixing station won't accept forward slash or pipe even though sq does, so replace with something close enough
+		this._sendMessage(channel, "cfg.name", name.replace(/[\/\|]/g, "\\"));
 		// todo: different colors for different mixers? (not high priority)
 		this._sendMessage(channel, "cfg.color", active ? 4 : 1);
 	}
