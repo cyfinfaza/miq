@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { makeToast, msConfig, currentConnectionStatus } from "./stores";
+import { makeToast, msConfig, currentConnectionStatus, ConnectionStatusEnum } from "./stores";
 import { BaseConnection } from "./baseConnection";
 
 export class MixingStationConnection extends BaseConnection {
@@ -17,9 +17,8 @@ export class MixingStationConnection extends BaseConnection {
 
 		this.client.onopen = () => {
 			currentConnectionStatus.set({
-				connected: true,
+				status: ConnectionStatusEnum.CONNECTED,
 				address: new URL(this.client.url).host,
-				reconnecting: false,
 			});
 
 			const testKey = "ch.0.cfg.name";
@@ -30,7 +29,7 @@ export class MixingStationConnection extends BaseConnection {
 					// not connected to mixer or something else bad
 					if (res.error) {
 						makeToast("Mixing Station WS Error", res.error, "error");
-						if (res.error.includes("not available") || res.error.includes("not started")) this.close(); // graceful close (no more mixer for the forseeable future) so no auto reconnect
+						if (res.error.includes("not available") || res.error.includes("not started")) this.close(true); // no mixer, so keep trying to reconnect ungracefully
 					}
 
 					if (this.nameCharacterLimit === 0)
@@ -108,8 +107,8 @@ export class MixingStationConnection extends BaseConnection {
 		};
 	}
 
-	close() {
-		super.close();
+	close(ungraceful = false) {
+		super.close(ungraceful);
 		this.client.close();
 	}
 }

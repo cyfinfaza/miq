@@ -1,10 +1,10 @@
-import { currentConnection, currentConnectionStatus, makeToast } from "../lib/stores";
+import { currentConnection, currentConnectionStatus, ConnectionStatusEnum, makeToast } from "../lib/stores";
 import { get } from "svelte/store";
 
 export class BaseConnection {
 	constructor() {
 		// reset status but keep reconnecting indicator if set
-		currentConnectionStatus.set({ ...get(currentConnectionStatus), connected: false, address: null });
+		currentConnectionStatus.set({ status: ConnectionStatusEnum.CONNECTING, address: null });
 	}
 
 	onFire(scene) {
@@ -36,14 +36,19 @@ export class BaseConnection {
 
 	static getCompleteConfig() {
 		return {
+			// placeholder values for anything handled in this file across connection types
 			resendNum: 0,
+			autoReconnect: false,
 		};
 	}
 
 	/** gracefully close, for when the user wants to close it */
-	close() {
-		currentConnection.set(null); // unregister self for handling fires
-		currentConnectionStatus.set({ connected: false, address: null, reconnecting: false }); // clear state
+	close(ungraceful = false) {
+		// don't do this for something ungraceful
+		if (ungraceful !== true) {
+			currentConnection.set(null); // unregister self for handling fires
+			currentConnectionStatus.set({ status: ConnectionStatusEnum.DISCONNECTED, address: null }); // clear state
+		}
 	}
 
 	_onSocketClose() {
@@ -55,7 +60,10 @@ export class BaseConnection {
 				willAutoReconnect ? "Auto Reconnect is enabled" : "Auto Reconnect is disabled",
 				willAutoReconnect ? "warn" : "error"
 			);
-			currentConnectionStatus.set({ connected: false, address: null, reconnecting: willAutoReconnect });
+			currentConnectionStatus.set({
+				status: willAutoReconnect ? ConnectionStatusEnum.CONNECTING : ConnectionStatusEnum.DISCONNECTED,
+				address: null,
+			});
 			if (willAutoReconnect)
 				setTimeout(() => {
 					// recheck incase config changed between now and then

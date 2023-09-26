@@ -1,6 +1,6 @@
 import osc from "osc-js";
 import { get, writable } from "svelte/store";
-import { makeToast, oscConfig, currentConnectionStatus } from "./stores";
+import { makeToast, oscConfig, currentConnectionStatus, ConnectionStatusEnum } from "./stores";
 import { BaseConnection } from "./baseConnection";
 
 export const channelMeters = writable([]);
@@ -37,9 +37,8 @@ export class OSCConnection extends BaseConnection {
 
 		this.client.on("open", () => {
 			currentConnectionStatus.set({
-				connected: true,
+				status: ConnectionStatusEnum.CONNECTED,
 				address: this.client.options.plugin.options.host,
-				reconnecting: false,
 			});
 			const liveRequestFunction = () => {
 				if (config.liveMetersEnabled) {
@@ -85,8 +84,8 @@ export class OSCConnection extends BaseConnection {
 		};
 	}
 
-	close() {
-		super.close();
+	close(ungraceful = false) {
+		super.close(ungraceful);
 		this.client.close();
 		clearInterval(this.liveRequestInterval);
 	}

@@ -5,7 +5,14 @@
 	import { connect, disconnect } from "../lib/mqtt";
 
 	import { newConnection } from "../lib/connectionUtil";
-	import { connectionMode, currentConnection, currentConnectionStatus, oscConfig, msConfig } from "../lib/stores";
+	import {
+		connectionMode,
+		currentConnection,
+		currentConnectionStatus,
+		ConnectionStatusEnum,
+		oscConfig,
+		msConfig,
+	} from "../lib/stores";
 </script>
 
 <Modal modalName="settings">
@@ -26,11 +33,11 @@
 			</ul>
 
 			<p>
-				Connection mode: <select disabled={$currentConnectionStatus.connected} bind:value={$connectionMode}>
+				Connection mode: <select disabled={$currentConnectionStatus.status > 0} bind:value={$connectionMode}>
 					<option value="osc">x32-proxy</option>
 					<option value="ms">Mixing Station</option>
 				</select>
-				{#if $currentConnectionStatus.connected}(disconnect to edit){/if}
+				{#if $currentConnectionStatus.status > 0}(disconnect to edit){/if}
 			</p>
 
 			{#if $connectionMode === "osc"}
@@ -40,7 +47,7 @@
 					<code>x32-proxy --ws --target your.mixer.ip.address</code> <br />
 					then, leaving the settings below blank, tap connect.
 				</p>
-				<div class="verti" disabled={$currentConnectionStatus.connected || null}>
+				<div class="verti" disabled={$currentConnectionStatus.status > 0 || null}>
 					<p>Host: <input type="text" bind:value={$oscConfig.host} /></p>
 					<p>Port: <input type="number" bind:value={$oscConfig.port} /></p>
 					<p>Secure: <input type="checkbox" bind:checked={$oscConfig.secure} /></p>
@@ -58,7 +65,7 @@
 					Once you have enabled the API, <strong>first</strong> connect to your mixer through Mixing Station.
 					<strong>Then,</strong> leaving the settings below blank, tap connect.
 				</p>
-				<div class="verti" disabled={$currentConnectionStatus.connected || null}>
+				<div class="verti" disabled={$currentConnectionStatus.status > 0 || null}>
 					<p>Host: <input type="text" bind:value={$msConfig.host} /></p>
 					<p>Port: <input type="number" bind:value={$msConfig.port} /></p>
 					<p>Secure: <input type="checkbox" bind:checked={$msConfig.secure} /></p>
@@ -67,10 +74,10 @@
 				</div>
 			{/if}
 			<p>
-				{#if $currentConnectionStatus.connected}
+				{#if $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED}
 					<button class="green" on:click={$currentConnection.close()}>Connected (tap to disconnect)</button>
-				{:else if $currentConnectionStatus.reconnecting}
-					<button class="yellow" on:click={$currentConnection.close()}>Reconnecting (tap to stop)</button>
+				{:else if $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING}
+					<button class="yellow" on:click={$currentConnection.close()}>Connecting (tap to stop)</button>
 				{:else}
 					<button class="red" on:click={newConnection}>Disconnected (tap to connect)</button>
 				{/if}
