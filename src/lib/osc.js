@@ -68,9 +68,10 @@ export class OSCConnection extends BaseConnection {
 	}
 
 	_fireChannel(channel, active, name) {
-		this.client.send(new osc.Message(`/ch/${channel}/mix/on`, active ? 780 : 0));
-		this.client.send(new osc.Message(`/ch/${channel}/config/color`, active ? 6 : 1));
-		this.client.send(new osc.Message(`/ch/${channel}/config/name`, name));
+		let ch = (channel < 10 ? "0" : "") + channel;
+		this.client.send(new osc.Message(`/ch/${ch}/mix/on`, active ? 780 : 0));
+		this.client.send(new osc.Message(`/ch/${ch}/config/color`, active ? 6 : 1));
+		this.client.send(new osc.Message(`/ch/${ch}/config/name`, name));
 	}
 
 	static getCompleteConfig() {
