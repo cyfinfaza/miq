@@ -15,7 +15,7 @@ export default defineConfig({
 				runtimeCaching: [
 					{
 						urlPattern:
-							/^https:\/\/((rsms\.me|polyfill\.io|unpkg\.com\/boxicons@.*?)\/.*|.*\.github\.io\/.*\.js)/i,
+							/^https:\/\/((rsms\.me|cdnjs\.cloudflare\.com|unpkg\.com\/boxicons@.*?)\/.*|.*\.github\.io\/.*\.js)/i,
 						handler: "CacheFirst",
 						options: {
 							cacheName: "runtime-cache",
