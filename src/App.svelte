@@ -165,11 +165,11 @@
 				currentIndex = findNewIndex(
 					currentIndex, // old
 					updateData.oldCurrentName,
-					-1 // don't say we have some random thing fired
+					-1, // don't say we have some random thing fired
 				);
 				previewIndex = findNewIndex(
 					previewIndex, // old
-					updateData.oldPreviewName
+					updateData.oldPreviewName,
 				);
 
 				updateData = null;
@@ -237,7 +237,7 @@
 				"miq/" + $mqttConfig.topic + "/config",
 				JSON.stringify({ type: "config", data: config }),
 				0,
-				true
+				true,
 			);
 			//set will message to clear
 		}
@@ -250,7 +250,7 @@
 				"miq/" + $mqttConfig.topic,
 				JSON.stringify({ type: "index", data: { currentIndex, previewIndex } }),
 				0,
-				false
+				false,
 			);
 		}
 	}
@@ -387,8 +387,8 @@
 						$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
 							? "green"
 							: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
-							? "yellow"
-							: "red"
+								? "yellow"
+								: "red"
 					})`}
 				>
 					<div class="iconlabel">
@@ -396,8 +396,8 @@
 							name={$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
 								? "wifi"
 								: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
-								? "hourglass"
-								: "wifi-off"}
+									? "hourglass"
+									: "wifi-off"}
 							color="currentColor"
 							size="1em"
 						/>
@@ -411,8 +411,8 @@
 					>tap to {$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
 						? "disconnect"
 						: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
-						? "stop connecting"
-						: "connect"}</span
+							? "stop connecting"
+							: "connect"}</span
 				>
 			</button>
 			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
