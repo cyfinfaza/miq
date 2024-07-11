@@ -1,4 +1,10 @@
-import { currentConnection, currentConnectionStatus, ConnectionStatusEnum, makeToast } from "../lib/stores";
+import {
+	currentConnection,
+	currentConnectionStatus,
+	ConnectionStatusEnum,
+	channelOverrides,
+	makeToast,
+} from "../lib/stores";
 import { get } from "svelte/store";
 
 export class BaseConnection {
@@ -9,20 +15,35 @@ export class BaseConnection {
 
 	onFire(scene) {
 		if (scene?.mics) {
+			const overrides = get(channelOverrides);
+
 			const sendNum = Math.round(Math.min(Math.max(this.constructor.getCompleteConfig().resendNum || 0, 0), 4)) + 1;
 			console.log("sending", sendNum, "times");
+
+			let overrideToast = "";
 
 			for (let sends = 0; sends < sendNum; sends++) {
 				Object.keys(scene.mics).forEach((channel) => {
 					let mic = scene.mics[channel];
-					if (mic)
+					if (mic) {
+						let channelNum = parseInt(channel);
+						if (overrides?.[channelNum]?.disableControl) return console.log(`channel ${channelNum} is disabled`);
+
+						let newChannelNum = null;
+						if (overrides?.[channelNum]?.channelNumber > 0) newChannelNum = overrides[channelNum].channelNumber;
+						if (mic.active && newChannelNum && newChannelNum != channelNum)
+							overrideToast += `fired #${channelNum} as #${newChannelNum}\n`;
+
 						this._fireChannel(
-							channel,
+							newChannelNum ?? channelNum,
 							mic.active,
 							mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor
 						);
+					}
 				});
 			}
+
+			if (overrideToast) makeToast("overrides active", overrideToast, "info");
 		}
 	}
 

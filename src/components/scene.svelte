@@ -1,8 +1,16 @@
 <script>
 	export let scene;
 	export let live = false;
-	import { connectionMode, currentConnectionStatus, ConnectionStatusEnum, oscConfig } from "../lib/stores";
+	import {
+		connectionMode,
+		currentConnectionStatus,
+		ConnectionStatusEnum,
+		oscConfig,
+		channelOverrides,
+	} from "../lib/stores";
 	import MeterCanvas from "./meterCanvas.svelte";
+
+	export let channelOverrideDialogChannel = null;
 </script>
 
 <div class="scene" class:live>
@@ -15,6 +23,8 @@
 		</h2>
 		<div class="channels">
 			{#each Object.keys(scene?.mics || {}) as i}
+				{@const disableControl = $channelOverrides?.[parseInt(i)]?.disableControl}
+				{@const overrideChannelNumber = $channelOverrides?.[parseInt(i)]?.channelNumber}
 				<div
 					class="channel"
 					class:accent={scene?.mics[i]?.active}
@@ -22,10 +32,22 @@
 					class:meteringEnabled={$connectionMode === "osc" &&
 						$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED &&
 						$oscConfig.liveMetersEnabled}
+					class:disabled={disableControl}
 				>
-					<!-- <div class="channelMeter" style:height={`calc(100% * ${$channelMeters[i - 1]})`} /> -->
 					<MeterCanvas channel={i} />
-					<h3 style="font-weight: 400; text-overflow: clip;">{i}</h3>
+					<h3 style="font-weight: 400; text-overflow: clip;">
+						<span style:text-decoration={overrideChannelNumber || disableControl ? "line-through" : null}>{i}</span>
+						{overrideChannelNumber || ""}
+					</h3>
+					<div
+						class="menu"
+						on:click={() => (channelOverrideDialogChannel = i)}
+						on:keypress={() => (channelOverrideDialogChannel = i)}
+						role="button"
+						tabindex="0"
+					>
+						<box-icon name="dots-vertical-rounded" color="currentColor" size="1.25em" />
+					</div>
 					<div>
 						<p
 							class="actorLabel"
@@ -61,6 +83,8 @@
 </div>
 
 <style lang="scss">
+	@use "sass:color";
+
 	.scene {
 		display: grid;
 		grid-template-columns: 4fr 1fr;
@@ -153,6 +177,15 @@
 	.accent {
 		border-color: transparent;
 	}
+
+	.disabled {
+		background: #333;
+		border-color: transparent;
+	}
+	.disabled.accent {
+		background: color.change($color: #17e, $saturation: 20%);
+	}
+
 	.dne {
 		opacity: 0.2;
 	}
@@ -175,11 +208,11 @@
 		border-radius: min(0.2em, var(--rounding));
 		vertical-align: text-bottom;
 	}
-	.channelMeter {
-		background: #fff4;
+
+	.menu {
 		position: absolute;
-		width: 100%;
-		bottom: 0;
-		left: 0;
+		top: 0.1em;
+		right: 0.1em;
+		cursor: pointer;
 	}
 </style>

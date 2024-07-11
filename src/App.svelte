@@ -1,11 +1,12 @@
 <script>
-	import { onMount, tick } from "svelte";
+	import { onMount, setContext, tick } from "svelte";
 	import "boxicons";
 
 	import Scene from "./components/scene.svelte";
 	import DbManager from "./components/dbManager.svelte";
 	import Settings from "./components/settings.svelte";
 	import Toast from "./components/toast.svelte";
+	import Dialog from "./components/dialog.svelte";
 
 	import {
 		showingModal,
@@ -18,6 +19,7 @@
 		currentConnectionStatus,
 		connectionMode,
 		ConnectionStatusEnum,
+		channelOverrides,
 	} from "./lib/stores";
 	import { newConnection, connectionAddress } from "./lib/connectionUtil";
 	import { configs, sheets, ddp, loadExternalConfig, updateSheet } from "./lib/db";
@@ -179,6 +181,14 @@
 		}
 	}
 
+	/** @type {number | null} */
+	let channelOverrideDialogChannel = null;
+	const populateChannelOverride = (number) => {
+		if (!$channelOverrides[number]) {
+			$channelOverrides[number] = { disableControl: false, channelNumber: null }; // include form binds
+		}
+	};
+
 	// only want to regenerate when these specific parameters change
 	$: regenerateScenes(selectedConfig, data);
 
@@ -250,7 +260,7 @@
 				"miq/" + $mqttConfig.topic,
 				JSON.stringify({ type: "index", data: { currentIndex, previewIndex } }),
 				0,
-				false,
+				true,
 			);
 		}
 	}
@@ -299,7 +309,7 @@
 
 <svelte:window
 	on:keydown={(e) => {
-		if ($showingModal.length) return; // only run on main page
+		if ($showingModal.length || channelOverrideDialogChannel !== null) return; // only run on main page
 		document.activeElement.blur();
 		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
 		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
@@ -480,10 +490,12 @@
 					{scene.name}
 				</button>
 			{/each}
+			<button on:click={() => (previewIndex = 0)}>&lt;&lt; START</button>
 		</div>
 		<div class="sceneview">
-			<Scene scene={scenes[previewIndex]} />
-			<Scene scene={scenes[currentIndex]} live />
+			<!-- todo: implement order switcher setting -->
+			<Scene scene={scenes[previewIndex]} bind:channelOverrideDialogChannel />
+			<Scene scene={scenes[currentIndex]} live bind:channelOverrideDialogChannel />
 		</div>
 	</div>
 	<div class="buttons">
@@ -501,6 +513,64 @@
 		{/if}
 	</div>
 </main>
+
+<Dialog
+	show={channelOverrideDialogChannel !== null}
+	on:close={() => {
+		channelOverrideDialogChannel = null;
+	}}
+>
+	{#if channelOverrideDialogChannel}
+		{#await new Promise((resolve) => {
+			populateChannelOverride(channelOverrideDialogChannel);
+			resolve();
+		}) then}
+			<h2>Channel {channelOverrideDialogChannel} overrides</h2>
+			<div>
+				<label for="disableControl">Disable control?:</label>
+				<input
+					id="disableControl"
+					type="checkbox"
+					bind:checked={$channelOverrides[channelOverrideDialogChannel].disableControl}
+				/>
+			</div>
+			<div>
+				<label for="channelNumber">Channel number:</label>
+				<input
+					id="channelNumber"
+					type="number"
+					min="1"
+					value={$channelOverrides[channelOverrideDialogChannel].channelNumber}
+					on:change={(e) => {
+						const oldChannelNumber = $channelOverrides[channelOverrideDialogChannel].channelNumber;
+						populateChannelOverride(oldChannelNumber);
+						$channelOverrides[oldChannelNumber].disableControl = false;
+
+						const newChannelNumber = parseInt(e.target.value);
+						if (newChannelNumber !== NaN) {
+							populateChannelOverride(newChannelNumber);
+							$channelOverrides[newChannelNumber].disableControl = true;
+						}
+						$channelOverrides[channelOverrideDialogChannel].channelNumber = newChannelNumber;
+
+						console.log(oldChannelNumber, newChannelNumber);
+					}}
+				/>
+				<button
+					on:click|preventDefault={() => {
+						const oldChannelNumber = $channelOverrides[channelOverrideDialogChannel].channelNumber;
+						populateChannelOverride(oldChannelNumber);
+						$channelOverrides[oldChannelNumber].disableControl = false;
+						$channelOverrides[channelOverrideDialogChannel].channelNumber = null;
+					}}
+					title="*will also remove a manually set channel disable on target">clear</button
+				>
+			</div>
+		{:catch}
+			invalid state
+		{/await}
+	{/if}
+</Dialog>
 
 <DbManager />
 <Settings />
