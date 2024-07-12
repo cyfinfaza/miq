@@ -313,6 +313,8 @@
 		document.activeElement.blur();
 		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
 		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
+		else if (e.key === "Home") previewIndex = 0;
+		else if (e.key === "End") previewIndex = scenes.length - 1;
 		else if (!debouncingFire && e.key === " " && previewIndex < scenes.length) {
 			debouncingFire = true;
 			fire(previewIndex);
@@ -490,6 +492,7 @@
 					{scene.name}
 				</button>
 			{/each}
+			<!-- todo: make look not like a cue -->
 			<button on:click={() => (previewIndex = 0)}>&lt;&lt; START</button>
 		</div>
 		<div class="sceneview">

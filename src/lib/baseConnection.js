@@ -27,12 +27,16 @@ export class BaseConnection {
 					let mic = scene.mics[channel];
 					if (mic) {
 						let channelNum = parseInt(channel);
-						if (overrides?.[channelNum]?.disableControl) return console.log(`channel ${channelNum} is disabled`);
+
+						if (overrides?.[channelNum]?.disableControl || mic.character.startsWith("?"))
+							return console.log(`channel ${channelNum} is disabled`);
+						// todo: if channel is disabled by ? prefix then still fire name to board
 
 						let newChannelNum = null;
 						if (overrides?.[channelNum]?.channelNumber > 0) newChannelNum = overrides[channelNum].channelNumber;
 						if (mic.active && newChannelNum && newChannelNum != channelNum)
 							overrideToast += `fired #${channelNum} as #${newChannelNum}\n`;
+						// todo: if channel is overridden, change color on board
 
 						this._fireChannel(
 							newChannelNum ?? channelNum,

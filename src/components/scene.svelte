@@ -32,7 +32,7 @@
 					class:meteringEnabled={$connectionMode === "osc" &&
 						$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED &&
 						$oscConfig.liveMetersEnabled}
-					class:disabled={disableControl}
+					class:disabled={disableControl || scene?.mics[i]?.character?.startsWith("?")}
 				>
 					<MeterCanvas channel={i} />
 					<h3 style="font-weight: 400; text-overflow: clip;">
