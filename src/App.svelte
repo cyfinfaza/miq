@@ -311,6 +311,7 @@
 	on:keydown={(e) => {
 		if ($showingModal.length || channelOverrideDialogChannel !== null) return; // only run on main page
 		document.activeElement.blur();
+		// todo: check no other keys are pressed
 		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
 		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
 		else if (e.key === "Home") previewIndex = 0;
