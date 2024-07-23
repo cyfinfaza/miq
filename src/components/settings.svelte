@@ -12,6 +12,7 @@
 		ConnectionStatusEnum,
 		oscConfig,
 		msConfig,
+		appConfig,
 	} from "../lib/stores";
 </script>
 
@@ -85,7 +86,7 @@
 		</div>
 	</details>
 	<details>
-		<summary> MQTT </summary>
+		<summary>MQTT</summary>
 		<div class="verti" style="align-items: flex-start">
 			<div class="verti" disabled={$mqttStatus.connected || null}>
 				<p>Host: <input type="text" bind:value={$mqttConfig.host} /></p>
@@ -119,6 +120,13 @@
 				{/if}
 			</p>
 		</div>
+	</details>
+	<details>
+		<summary>App</summary>
+		<p>
+			Flip Scene Order: <input type="checkbox" bind:checked={$appConfig.flipSceneOrder} />
+			({$appConfig?.flipSceneOrder ? "live" : "preview"} first)
+		</p>
 	</details>
 </Modal>
 

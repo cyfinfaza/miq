@@ -1,10 +1,11 @@
 import { writable, get } from "svelte/store";
 
-export const showingModal = writable([]);
+/** @type {import("svelte/store").Writable<"settings" | "dbConfig" | null>} */
+export const showingModal = writable(null);
 
 window?.addEventListener("keydown", (e) => {
 	if (e.key === "Escape") {
-		showingModal.set([]);
+		showingModal.set(null);
 	}
 });
 
@@ -26,6 +27,9 @@ export const mqttStatus = writable({ connected: false, address: null });
 export const connectionMode = localStorageWritable("connectionMode", "osc");
 export const oscConfig = localStorageWritable("oscConfig", {});
 export const msConfig = localStorageWritable("msConfig", {});
+
+/** @type {import("svelte/store").Writable<{ flipSceneOrder: boolean }>} */
+export const appConfig = localStorageWritable("appConfig", {});
 
 /** @type {import("svelte/store").Writable<import("./connection").BaseConnection>} */
 export const currentConnection = writable(null);
