@@ -7,12 +7,38 @@ export const ddp = {
 	notesRow: 0,
 	namesRow: 1,
 	flagsRow: 2,
-	micsStartRow: 2,
-	micNumsCol: 0,
+	micsStartRow: 3,
 	actorNamesCol: 1,
+	micNumsCol: 2,
 	scenesStartCol: 2,
 };
 
+/**
+ * @typedef Config
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ * @property {number} sheetId
+ * @property {number} notesRow
+ * @property {number} namesRow
+ * @property {number} flagsRow
+ * @property {number} micsStartRow
+ * @property {number} actorNamesCol
+ * @property {number} micNumsCol
+ * @property {number} scenesStartCol
+ */
+
+/**
+ * @typedef Sheet
+ * @type {object}
+ * @property {number} id
+ * @property {string} name
+ * @property {string} sheetId
+ * @property {Date} [lastFetched]
+ * @property {string[][]} [table]
+ */
+
+/** @type {Dexie & { configs: Dexie.Table<Config, number>, sheets: Dexie.Table<Sheet, number> }} */
 export const db = new Dexie("miq");
 db.version(1).stores({
 	configs: "++id, name",
@@ -20,8 +46,10 @@ db.version(1).stores({
 });
 
 export const storedConfigs = Dexie.liveQuery(async () => await db.configs.toArray());
+/** @type {Writable<Object.<string, Config>>} */
 export const externalConfigs = writable({});
 
+/** @type {Readable<Config>} */
 export const configs = derived([storedConfigs, externalConfigs], ([$storedConfigs, $externalConfigs]) => {
 	return [
 		...($storedConfigs || []),

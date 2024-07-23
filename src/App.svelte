@@ -1,11 +1,12 @@
 <script>
-	import { onMount, tick } from "svelte";
+	import { onMount, setContext, tick } from "svelte";
 	import "boxicons";
 
 	import Scene from "./components/scene.svelte";
 	import DbManager from "./components/dbManager.svelte";
 	import Settings from "./components/settings.svelte";
 	import Toast from "./components/toast.svelte";
+	import Dialog from "./components/dialog.svelte";
 
 	import {
 		showingModal,
@@ -18,6 +19,7 @@
 		currentConnectionStatus,
 		connectionMode,
 		ConnectionStatusEnum,
+		channelOverrides,
 	} from "./lib/stores";
 	import { newConnection, connectionAddress } from "./lib/connectionUtil";
 	import { configs, sheets, ddp, loadExternalConfig, updateSheet } from "./lib/db";
@@ -165,11 +167,11 @@
 				currentIndex = findNewIndex(
 					currentIndex, // old
 					updateData.oldCurrentName,
-					-1 // don't say we have some random thing fired
+					-1, // don't say we have some random thing fired
 				);
 				previewIndex = findNewIndex(
 					previewIndex, // old
-					updateData.oldPreviewName
+					updateData.oldPreviewName,
 				);
 
 				updateData = null;
@@ -178,6 +180,14 @@
 			scenes = [];
 		}
 	}
+
+	/** @type {number | null} */
+	let channelOverrideDialogChannel = null;
+	const populateChannelOverride = (number) => {
+		if (!$channelOverrides[number]) {
+			$channelOverrides[number] = { disableControl: false, channelNumber: null }; // include form binds
+		}
+	};
 
 	// only want to regenerate when these specific parameters change
 	$: regenerateScenes(selectedConfig, data);
@@ -237,7 +247,7 @@
 				"miq/" + $mqttConfig.topic + "/config",
 				JSON.stringify({ type: "config", data: config }),
 				0,
-				true
+				true,
 			);
 			//set will message to clear
 		}
@@ -250,7 +260,7 @@
 				"miq/" + $mqttConfig.topic,
 				JSON.stringify({ type: "index", data: { currentIndex, previewIndex } }),
 				0,
-				false
+				true,
 			);
 		}
 	}
@@ -299,10 +309,13 @@
 
 <svelte:window
 	on:keydown={(e) => {
-		if ($showingModal.length) return; // only run on main page
+		if ($showingModal.length || channelOverrideDialogChannel !== null) return; // only run on main page
 		document.activeElement.blur();
+		// todo: check no other keys are pressed
 		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
 		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
+		else if (e.key === "Home") previewIndex = 0;
+		else if (e.key === "End") previewIndex = scenes.length - 1;
 		else if (!debouncingFire && e.key === " " && previewIndex < scenes.length) {
 			debouncingFire = true;
 			fire(previewIndex);
@@ -387,8 +400,8 @@
 						$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
 							? "green"
 							: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
-							? "yellow"
-							: "red"
+								? "yellow"
+								: "red"
 					})`}
 				>
 					<div class="iconlabel">
@@ -396,8 +409,8 @@
 							name={$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
 								? "wifi"
 								: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
-								? "hourglass"
-								: "wifi-off"}
+									? "hourglass"
+									: "wifi-off"}
 							color="currentColor"
 							size="1em"
 						/>
@@ -411,8 +424,8 @@
 					>tap to {$currentConnectionStatus.status === ConnectionStatusEnum.CONNECTED
 						? "disconnect"
 						: $currentConnectionStatus.status === ConnectionStatusEnum.CONNECTING
-						? "stop connecting"
-						: "connect"}</span
+							? "stop connecting"
+							: "connect"}</span
 				>
 			</button>
 			{#if selectedConfig.sheetId && !selectedConfig.table && !rxActive}
@@ -480,10 +493,13 @@
 					{scene.name}
 				</button>
 			{/each}
+			<!-- todo: make look not like a cue -->
+			<button on:click={() => (previewIndex = 0)}>&lt;&lt; START</button>
 		</div>
 		<div class="sceneview">
-			<Scene scene={scenes[previewIndex]} />
-			<Scene scene={scenes[currentIndex]} live />
+			<!-- todo: implement order switcher setting -->
+			<Scene scene={scenes[previewIndex]} bind:channelOverrideDialogChannel />
+			<Scene scene={scenes[currentIndex]} live bind:channelOverrideDialogChannel />
 		</div>
 	</div>
 	<div class="buttons">
@@ -501,6 +517,64 @@
 		{/if}
 	</div>
 </main>
+
+<Dialog
+	show={channelOverrideDialogChannel !== null}
+	on:close={() => {
+		channelOverrideDialogChannel = null;
+	}}
+>
+	{#if channelOverrideDialogChannel}
+		{#await new Promise((resolve) => {
+			populateChannelOverride(channelOverrideDialogChannel);
+			resolve();
+		}) then}
+			<h2>Channel {channelOverrideDialogChannel} overrides</h2>
+			<div>
+				<label for="disableControl">Disable control?:</label>
+				<input
+					id="disableControl"
+					type="checkbox"
+					bind:checked={$channelOverrides[channelOverrideDialogChannel].disableControl}
+				/>
+			</div>
+			<div>
+				<label for="channelNumber">Channel number:</label>
+				<input
+					id="channelNumber"
+					type="number"
+					min="1"
+					value={$channelOverrides[channelOverrideDialogChannel].channelNumber}
+					on:change={(e) => {
+						const oldChannelNumber = $channelOverrides[channelOverrideDialogChannel].channelNumber;
+						populateChannelOverride(oldChannelNumber);
+						$channelOverrides[oldChannelNumber].disableControl = false;
+
+						const newChannelNumber = parseInt(e.target.value);
+						if (newChannelNumber !== NaN) {
+							populateChannelOverride(newChannelNumber);
+							$channelOverrides[newChannelNumber].disableControl = true;
+						}
+						$channelOverrides[channelOverrideDialogChannel].channelNumber = newChannelNumber;
+
+						console.log(oldChannelNumber, newChannelNumber);
+					}}
+				/>
+				<button
+					on:click|preventDefault={() => {
+						const oldChannelNumber = $channelOverrides[channelOverrideDialogChannel].channelNumber;
+						populateChannelOverride(oldChannelNumber);
+						$channelOverrides[oldChannelNumber].disableControl = false;
+						$channelOverrides[channelOverrideDialogChannel].channelNumber = null;
+					}}
+					title="*will also remove a manually set channel disable on target">clear</button
+				>
+			</div>
+		{:catch}
+			invalid state
+		{/await}
+	{/if}
+</Dialog>
 
 <DbManager />
 <Settings />

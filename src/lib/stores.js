@@ -49,6 +49,9 @@ connectionMode.subscribe((mode) => {
 	}
 });
 
+/** @type {import("svelte/store").Writable<{ [key: number]: { disableControl?: boolean, channelNumber?: number } }>} */
+export const channelOverrides = writable({});
+
 export const toasts = writable([]);
 /** @param {"info"|"warn"|"error"} type */
 export function makeToast(title, message, type = "info") {

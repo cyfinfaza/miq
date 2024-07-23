@@ -180,19 +180,19 @@
 						Notes Row: <input type="number" bind:value={editing.data.notesRow} />
 					</p>
 					<p>
-						Names Row: <input type="number" bind:value={editing.data.namesRow} />
-					</p>
-					<p>
-						Mics Start Row: <input type="number" bind:value={editing.data.micsStartRow} />
+						Scene Names Row: <input type="number" bind:value={editing.data.namesRow} />
 					</p>
 					<p>
 						Flags Row: <input type="number" bind:value={editing.data.flagsRow} />
 					</p>
 					<p>
-						Mic Numbers Column: <input type="number" bind:value={editing.data.micNumsCol} />
+						Mics Start Row: <input type="number" bind:value={editing.data.micsStartRow} />
 					</p>
 					<p>
 						Actor Names Column: <input type="number" bind:value={editing.data.actorNamesCol} />
+					</p>
+					<p>
+						Mic Numbers Column: <input type="number" bind:value={editing.data.micNumsCol} />
 					</p>
 					<p>
 						Scenes Start Column: <input type="number" bind:value={editing.data.scenesStartCol} />
