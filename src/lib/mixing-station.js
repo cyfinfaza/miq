@@ -7,6 +7,19 @@ export class MixingStationConnection extends BaseConnection {
 	nameCharacterLimit = 0; // none to start
 	_pingInterval;
 
+	colors = {
+		// defaults for sq, will be updated on connect or fallback to random
+		BLACK: 0,
+		RED: 1,
+		GREEN: 2,
+		BLUE: 3,
+		CYAN: 4,
+		YELLOW: 5,
+		MAGENTA: 6,
+		WHITE: 7,
+	};
+	updatedColors = false;
+
 	constructor() {
 		super();
 
@@ -21,7 +34,8 @@ export class MixingStationConnection extends BaseConnection {
 				address: new URL(this.client.url).host,
 			});
 
-			const testKey = "ch.0.cfg.name";
+			const nameTestKey = "ch.0.cfg.name";
+			const colorTestKey = "ch.0.cfg.color";
 			this.client.onmessage = (e) => {
 				try {
 					const res = JSON.parse(e.data);
@@ -33,7 +47,7 @@ export class MixingStationConnection extends BaseConnection {
 					}
 
 					if (this.nameCharacterLimit === 0)
-						res?.body?.definitions?.[testKey]?.constraints?.forEach((c) => {
+						res?.body?.definitions?.[nameTestKey]?.constraints?.forEach((c) => {
 							const trim = "Max length ";
 							if (!c.startsWith(trim)) return;
 							const num = parseInt(c.slice(trim.length));
@@ -41,12 +55,28 @@ export class MixingStationConnection extends BaseConnection {
 								this.nameCharacterLimit = num;
 							}
 						});
+
+					if (!this.updatedColors) {
+						console.log(res, res?.body?.definitions?.[colorTestKey]?.definition?.enums);
+						res?.body?.definitions?.[colorTestKey]?.definition?.enums?.forEach((e) => {
+							this.colors[e.name.toUpperCase()] = e.id;
+							this.updatedColors = true;
+						});
+					}
 				} catch (err) {}
 			};
 			// get string length now as it's dependent on the console, also verifies the console is ok
 			this.client.send(
 				JSON.stringify({
-					path: `/console/data/definitions/${testKey}`,
+					path: `/console/data/definitions/${nameTestKey}`,
+					method: "GET",
+					body: null,
+				})
+			);
+
+			this.client.send(
+				JSON.stringify({
+					path: `/console/data/definitions/${colorTestKey}`,
 					method: "GET",
 					body: null,
 				})
@@ -85,15 +115,14 @@ export class MixingStationConnection extends BaseConnection {
 		);
 	}
 
-	_fireChannel(channel, active, name) {
+	_fireChannel(channel, active, name, color) {
 		channel -= 1; // 0 indexed in api
 
-		this._sendMessage(channel, "mix.on", active);
+		if (active !== null) this._sendMessage(channel, "mix.on", active);
 		if (this.nameCharacterLimit) name = name.substr(0, this.nameCharacterLimit);
 		// mixing station won't accept forward slash or pipe even though sq does, so replace with something close enough
 		this._sendMessage(channel, "cfg.name", name.replace(/[\/\|]/g, "\\"));
-		// todo: different colors for different mixers? (not high priority)
-		this._sendMessage(channel, "cfg.color", active ? 4 : 1);
+		this._sendMessage(channel, "cfg.color", this.colors[color] || 1);
 	}
 
 	static getCompleteConfig() {

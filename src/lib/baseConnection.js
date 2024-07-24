@@ -7,6 +7,12 @@ import {
 } from "../lib/stores";
 import { get } from "svelte/store";
 
+/**
+ * @typedef BaseColor
+ * @type {"RED" | "CYAN" | "MAGENTA"}
+ * these
+ */
+
 export class BaseConnection {
 	constructor() {
 		// reset status but keep reconnecting indicator if set
@@ -28,20 +34,25 @@ export class BaseConnection {
 					if (mic) {
 						let channelNum = parseInt(channel);
 
-						if (overrides?.[channelNum]?.disableControl || mic.character.startsWith("?"))
-							return console.log(`channel ${channelNum} is disabled`);
-						// todo: if channel is disabled by ? prefix then still fire name to board
+						let overrideDisableControl = overrides?.[channelNum]?.disableControl;
+						if (overrideDisableControl) {
+							console.log(`channel ${channelNum} is disabled`);
+							return; // don't mess with this channel as another could be swapped to it and then overwrite
+						}
 
 						let newChannelNum = null;
 						if (overrides?.[channelNum]?.channelNumber > 0) newChannelNum = overrides[channelNum].channelNumber;
 						if (mic.active && newChannelNum && newChannelNum != channelNum)
 							overrideToast += `fired #${channelNum} as #${newChannelNum}\n`;
-						// todo: if channel is overridden, change color on board
+
+						// todo: allow combining multiple starting codes (?, #)
+						let sheetDisableControl = mic.character.startsWith("?"); // intended to be disabled
 
 						this._fireChannel(
 							newChannelNum ?? channelNum,
-							mic.active,
-							mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor
+							sheetDisableControl ? null : mic.active,
+							mic.character.startsWith("#") ? mic.actor : mic.character || mic.actor,
+							sheetDisableControl ? "MAGENTA" : mic.active ? "CYAN" : "RED"
 						);
 					}
 				});
@@ -54,10 +65,11 @@ export class BaseConnection {
 	/**
 	 * triggered for each channel to update it on fire
 	 * @param {number} channel channel number
-	 * @param {boolean} active should be unmuted
+	 * @param {boolean | null} active should be unmuted, null if control disabled
 	 * @param {string} name channel strip name
+	 * @param {BaseColor} color base color id
 	 */
-	_fireChannel(channel, active, name) {}
+	_fireChannel(channel, active, name, color) {}
 
 	static getCompleteConfig() {
 		return {

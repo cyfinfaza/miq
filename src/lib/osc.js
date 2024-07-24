@@ -9,6 +9,25 @@ export class OSCConnection extends BaseConnection {
 	client;
 	liveRequestInterval;
 
+	colors = {
+		BLACK: 0,
+		RED: 1,
+		GREEN: 2,
+		YELLOW: 3,
+		BLUE: 4,
+		MAGENTA: 5,
+		CYAN: 6,
+		WHITE: 7,
+		"BLACK INV": 8,
+		"RED INV": 9,
+		"GREEN INV": 10,
+		"YELLOW INV": 11,
+		"BLUE INV": 12,
+		"MAGENTA INV": 13,
+		"CYAN INV": 14,
+		"WHITE INV": 15,
+	};
+
 	constructor() {
 		super();
 
@@ -67,11 +86,11 @@ export class OSCConnection extends BaseConnection {
 		// }
 	}
 
-	_fireChannel(channel, active, name) {
+	_fireChannel(channel, active, name, color) {
 		let ch = (channel < 10 ? "0" : "") + channel;
-		this.client.send(new osc.Message(`/ch/${ch}/mix/on`, active ? 780 : 0));
-		this.client.send(new osc.Message(`/ch/${ch}/config/color`, active ? 6 : 1));
+		if (active !== null) this.client.send(new osc.Message(`/ch/${ch}/mix/on`, active ? 780 : 0));
 		this.client.send(new osc.Message(`/ch/${ch}/config/name`, name));
+		this.client.send(new osc.Message(`/ch/${ch}/config/color`, this.colors[color]));
 	}
 
 	static getCompleteConfig() {
