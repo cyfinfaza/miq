@@ -1,10 +1,10 @@
 <script>
 	export let modalName;
 	import { showingModal } from "../lib/stores";
-	const closeModal = (_) => ($showingModal = $showingModal.filter((item) => item !== modalName));
+	const closeModal = (_) => ($showingModal = null);
 </script>
 
-<div class="modal" class:showing={$showingModal[0] === modalName}>
+<div class="modal" class:showing={$showingModal === modalName}>
 	<button class="closeModalButton" on:click={closeModal}>esc</button>
 	<slot {closeModal} />
 </div>

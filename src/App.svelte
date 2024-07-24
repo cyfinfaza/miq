@@ -9,6 +9,7 @@
 	import Dialog from "./components/dialog.svelte";
 
 	import {
+		appConfig,
 		showingModal,
 		selectedConfigId,
 		mqttStatus,
@@ -309,9 +310,9 @@
 
 <svelte:window
 	on:keydown={(e) => {
-		if ($showingModal.length || channelOverrideDialogChannel !== null) return; // only run on main page
+		if ($showingModal || channelOverrideDialogChannel !== null) return; // only run on main page
+		if (e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
 		document.activeElement.blur();
-		// todo: check no other keys are pressed
 		if (e.key === "ArrowLeft" && previewIndex > 0) previewIndex--;
 		else if (e.key === "ArrowRight" && previewIndex < scenes.length - 1) previewIndex++;
 		else if (e.key === "Home") previewIndex = 0;
@@ -329,8 +330,8 @@
 />
 
 <main
-	class:showingModal={$showingModal.length > 0}
-	inert={$showingModal.length}
+	class:showingModal={$showingModal}
+	inert={$showingModal}
 	class:hideButtons={rxActive && $mqttConfig.rx_preview}
 >
 	<div class="top">
@@ -357,7 +358,7 @@
 				<box-icon name="collapse-alt" color="currentColor" size="1em" />
 				<br />Compact
 			</button>
-			<button on:click={(_) => ($showingModal = ["settings"])}>
+			<button on:click={(_) => ($showingModal = "settings")}>
 				<box-icon name="cog" color="currentColor" size="1em" />
 				<br />Settings
 			</button>
@@ -443,7 +444,7 @@
 				</button>
 			{/if}
 			<button
-				on:click={(_) => ($showingModal = ["dbConfig"])}
+				on:click={(_) => ($showingModal = "dbConfig")}
 				disabled={rxActive}
 				style="white-space: nowrap; text-overflow: ellipses;"
 			>
@@ -496,8 +497,7 @@
 			<!-- todo: make look not like a cue -->
 			<button on:click={() => (previewIndex = 0)}>&lt;&lt; START</button>
 		</div>
-		<div class="sceneview">
-			<!-- todo: implement order switcher setting -->
+		<div class="sceneview" class:reversed={$appConfig?.flipSceneOrder || false}>
 			<Scene scene={scenes[previewIndex]} bind:channelOverrideDialogChannel />
 			<Scene scene={scenes[currentIndex]} live bind:channelOverrideDialogChannel />
 		</div>
@@ -697,6 +697,9 @@
 		justify-content: space-between;
 		gap: var(--spacing);
 		overflow: auto;
+		&.reversed {
+			flex-direction: column-reverse;
+		}
 	}
 	.toasts {
 		position: fixed;
