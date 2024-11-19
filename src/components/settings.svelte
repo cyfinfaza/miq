@@ -71,6 +71,12 @@
 					<p>Secure: <input type="checkbox" bind:checked={$msConfig.secure} /></p>
 					<p>Resend cues (0≤n≤4): <input type="number" bind:value={$msConfig.resendNum} min="0" max="4" /> times</p>
 					<p>Enable Auto Reconnect?: <input type="checkbox" bind:checked={$msConfig.autoReconnect} /></p>
+					<p>
+						Mixing Station Color Enum: <br /> Mute:
+						<input type="number" bind:value={$msConfig.muteColor} placeholder="1" />
+						Unmute:
+						<input type="number" bind:value={$msConfig.unmuteColor} placeholder="4" />
+					</p>
 				</div>
 			{/if}
 			<p>

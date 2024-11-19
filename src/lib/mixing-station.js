@@ -93,7 +93,8 @@ export class MixingStationConnection extends BaseConnection {
 		// mixing station won't accept forward slash or pipe even though sq does, so replace with something close enough
 		this._sendMessage(channel, "cfg.name", name.replace(/[\/\|]/g, "\\"));
 		// todo: different colors for different mixers? (not high priority)
-		this._sendMessage(channel, "cfg.color", active ? 4 : 1);
+		const config = get(msConfig);
+		this._sendMessage(channel, "cfg.color", active ? config.unmuteColor ?? 4 : config.muteColor ?? 1);
 	}
 
 	static getCompleteConfig() {
